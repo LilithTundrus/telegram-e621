@@ -27,6 +27,7 @@
   },
   "homepage": "https://github.com/LilithTundrus/telegram-e621#readme",
   "dependencies": {
+    "chalk": "^2.3.0",
     "telegraf": "^3.17.2"
   }
 }
