@@ -8,7 +8,7 @@ const CONFIG = require('./config/config.js');
 const Logger = require('./lib/loggerClass.js');
 const VER = CONFIG.VER;
 const app = new Telegraf(CONFIG.BOT_TOKEN);
-const logger = new Logger;                                          // Create an instance of our custom logger
+const logger = new Logger();                                          // Create an instance of our custom logger
 
 /*
 Main entry point for the bot
