@@ -25,5 +25,8 @@
   "bugs": {
     "url": "https://github.com/LilithTundrus/telegram-e621/issues"
   },
-  "homepage": "https://github.com/LilithTundrus/telegram-e621#readme"
+  "homepage": "https://github.com/LilithTundrus/telegram-e621#readme",
+  "dependencies": {
+    "telegraf": "^3.17.2"
+  }
 }
