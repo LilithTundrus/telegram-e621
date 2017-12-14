@@ -36,7 +36,9 @@ Be able to make announcements to all users
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 
 app.command('start', ({ from, reply }) => {
-     reply('I am working! Probably..');
+    // log who started the bot here
+    logger.info(`Start from ${JSON.stringify(from)}`);
+    reply('I am working! Probably..');
 });
 app.command('whoami', (ctx) => {                                    //debugging
     ctx.reply(ctx.message.from.username)
@@ -47,9 +49,10 @@ app.command('ver', (ctx) => {                                       //get the ve
 
 
 
+
 app.startPolling();
 
 app.catch((err) => {
-    logger.error(err)
-    ctx.reply(err);
+    logger.error(err);
+    app.telegram.sendMessage(CONFIG.TELEGRAM_ADMIN_ID, err);
 })
