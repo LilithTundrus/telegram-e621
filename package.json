@@ -1,0 +1,29 @@
+{
+  "name": "telegram-e621",
+  "version": "0.0.1",
+  "description": "e621 Bot for telegram that will be able to serve many clients and provide curated and configurable art from e621.net Edit",
+  "main": "bot-main.js",
+  "scripts": {
+    "test": "node bot-main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LilithTundrus/telegram-e621.git"
+  },
+  "keywords": [
+    "node",
+    "js",
+    "e621",
+    "api",
+    "bot",
+    "telegram",
+    "furry",
+    "art"
+  ],
+  "author": "Lilith Tundrus",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/LilithTundrus/telegram-e621/issues"
+  },
+  "homepage": "https://github.com/LilithTundrus/telegram-e621#readme"
+}
