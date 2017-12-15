@@ -21,7 +21,6 @@ Get config opts
 Set up logging
 Init the bot
 Connect to DB (eventually)
-
 ...more when I can think of it
 
 Feature intent:
@@ -32,10 +31,10 @@ Have really good logging and user-based request monitoring
 Be able to make announcements to all users
 GET a 'popular by day/week/month' thing working
 
-
 //TODO: Initiate MVP
 //TODO: create an e621 API wrapper
 //TODO: catch errors and email admins on fatal crash
+//TODO: setup a pagination system
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 
@@ -54,29 +53,32 @@ app.command('help', (ctx) => {                                       // get the 
     ctx.reply('PlaceHolder');
 });
 
-
 app.command('recent', (ctx) => {                                       // debugging
+    return sendRecentMessage(ctx);
+});
+
+app.startPolling();
+
+app.catch((err) => {
+    return errHandler(err);
+})
+
+
+function sendRecentMessage(teleCtx) {
     return wrapper.getE621PostIndex()
         .then((response) => {
             var urls = [];
             response.forEach((entry, index) => {
                 console.log(entry);
-                urls.push(entry.file_url)
+                urls.push(entry.artist)
             })
-            return ctx.reply(urls)
+            return teleCtx.reply(urls);
         })
         .catch((err) => {
-            return errHandler(err)
+            return errHandler(err);
         })
-});
 
-
-
-app.startPolling();
-
-app.catch((err) => {
-    return errHandler(err)
-})
+}
 
 /**
  * Main error handler for the bot
