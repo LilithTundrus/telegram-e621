@@ -6,9 +6,12 @@ const Telegraf = require('telegraf');                               // Telegram 
 // declare our config-based opts and other globals
 const CONFIG = require('./config/config.js');
 const Logger = require('./lib/loggerClass.js');
+const e621Lib = require('./lib/e621Wrapper.js');
 const VER = CONFIG.VER;
+const USER_AGENT = CONFIG.USER_AGENT;
 const app = new Telegraf(CONFIG.BOT_TOKEN);
 const logger = new Logger();                                          // Create an instance of our custom logger
+const wrapper = new e621Lib();
 
 /*
 Main entry point for the bot
@@ -31,8 +34,8 @@ Be able to make announcements to all users
 
 //TODO: Initiate MVP
 //TODO: create an e621 API wrapper
+//TODO: catch errors and email admins on fatal crash
 */
-
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 
 app.command('start', ({ from, reply }) => {
@@ -40,13 +43,21 @@ app.command('start', ({ from, reply }) => {
     logger.info(`Start from ${JSON.stringify(from)}`);
     reply('I am working! Probably..');
 });
-app.command('whoami', (ctx) => {                                    //debugging
+app.command('whoami', (ctx) => {                                    // debugging
     ctx.reply(ctx.message.from.username)
 });
-app.command('ver', (ctx) => {                                       //get the version of the bot
+app.command('ver', (ctx) => {                                       // get the version of the bot
     ctx.reply(VER);
 });
 
+app.command('url', (ctx) => {                                       // debugging
+    let message =  wrapper.getE621PostIndex().then((response) => {
+        return ctx.reply(response.toString().substring(0, 100));
+        
+    })
+
+
+});
 
 
 
