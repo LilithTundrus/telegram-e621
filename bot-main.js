@@ -2,7 +2,8 @@
 
 // require all of our packages
 const Telegraf = require('telegraf');                               // Telegram API abstract for Node
-
+const Extra = require('telegraf/extra');
+const Markup = require('telegraf/markup');
 // declare our config-based opts and other globals
 const CONFIG = require('./config/config.js');
 const Logger = require('./lib/loggerClass.js');
@@ -10,6 +11,7 @@ const e621Helper = require('./lib/e621HelperClass.js');
 const VER = CONFIG.VER;
 const USER_AGENT = CONFIG.USER_AGENT;
 const app = new Telegraf(CONFIG.BOT_TOKEN);
+
 const logger = new Logger();                                          // Create an instance of our custom logger
 const wrapper = new e621Helper();
 
@@ -35,6 +37,7 @@ GET a 'popular by day/week/month' thing working
 //TODO: create an e621 API wrapper
 //TODO: catch errors and email admins on fatal crash
 //TODO: setup a pagination system
+//TODO: combine ENUMS and utils.js
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 
@@ -53,26 +56,43 @@ app.command('help', (ctx) => {                                       // get the 
     ctx.reply('PlaceHolder');
 });
 
-app.command('recent', (ctx) => {                                       // debugging
+app.command('test', (ctx) => {                                       // debugging
     return sendRecentMessage(ctx);
 });
 
 app.startPolling();
 
+app.command('custom', ({ reply }) => {
+    return reply('Custom buttons keyboard', Markup
+        .keyboard([
+            ['🔍 Search', '😎 Popular'], // Row1 with 2 buttons
+            ['☸ Setting', '📞 Feedback'], // Row2 with 2 buttons
+        ])
+        .oneTime()
+        .resize()
+        .extra()
+    )
+})
+
+app.hears('🔍 Search', (ctx) => {
+    ctx.reply('AAAAAAAAAAAAAAAAAAAAAA searching')
+})
+
 app.catch((err) => {
+
     return errHandler(err);
 })
 
 
 function sendRecentMessage(teleCtx) {
-    return wrapper.getE621PostIndex()
+    return wrapper.getE621PostIndex('fox +butt -hyper', 2)
         .then((response) => {
             var urls = [];
             response.forEach((entry, index) => {
                 console.log(entry);
-                urls.push(entry.artist)
+                urls.push(entry);
             })
-            return teleCtx.reply(urls);
+            return teleCtx.reply(urls[0].file_url);
         })
         .catch((err) => {
             return errHandler(err);
@@ -86,5 +106,5 @@ function sendRecentMessage(teleCtx) {
  */
 function errHandler(err) {
     logger.error(err);
-    app.telegram.sendMessage(CONFIG.TELEGRAM_ADMIN_ID, err);
+    app.telegram.sendMessage(CONFIG.TELEGRAM_ADMIN_ID, JSON.stringify(err, null, 2));
 }
