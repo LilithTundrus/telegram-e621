@@ -6,12 +6,12 @@ const Telegraf = require('telegraf');                               // Telegram 
 // declare our config-based opts and other globals
 const CONFIG = require('./config/config.js');
 const Logger = require('./lib/loggerClass.js');
-const e621Lib = require('./lib/e621HelperClass.js');
+const e621Helper = require('./lib/e621HelperClass.js');
 const VER = CONFIG.VER;
 const USER_AGENT = CONFIG.USER_AGENT;
 const app = new Telegraf(CONFIG.BOT_TOKEN);
 const logger = new Logger();                                          // Create an instance of our custom logger
-const wrapper = new e621Lib();
+const wrapper = new e621Helper();
 
 /*
 Main entry point for the bot
@@ -30,6 +30,7 @@ Be able to submit issues
 Be able to have a custom profile for the bot
 Have really good logging and user-based request monitoring
 Be able to make announcements to all users
+GET a 'popular by day/week/month' thing working
 
 
 //TODO: Initiate MVP
@@ -54,13 +55,19 @@ app.command('help', (ctx) => {                                       // get the 
 });
 
 
-app.command('url', (ctx) => {                                       // debugging
-    return wrapper.getE621PostIndex().then((response) => {
-        return ctx.reply(JSON.stringify(response.length));
-
-    })
-
-
+app.command('recent', (ctx) => {                                       // debugging
+    return wrapper.getE621PostIndex()
+        .then((response) => {
+            var urls = [];
+            response.forEach((entry, index) => {
+                console.log(entry);
+                urls.push(entry.file_url)
+            })
+            return ctx.reply(urls)
+        })
+        .catch((err) => {
+            return errHandler(err)
+        })
 });
 
 
@@ -68,6 +75,14 @@ app.command('url', (ctx) => {                                       // debugging
 app.startPolling();
 
 app.catch((err) => {
+    return errHandler(err)
+})
+
+/**
+ * Main error handler for the bot
+ * @param {Error} err 
+ */
+function errHandler(err) {
     logger.error(err);
     app.telegram.sendMessage(CONFIG.TELEGRAM_ADMIN_ID, err);
-})
+}
