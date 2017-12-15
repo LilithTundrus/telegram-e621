@@ -49,10 +49,15 @@ app.command('whoami', (ctx) => {                                    // debugging
 app.command('ver', (ctx) => {                                       // get the version of the bot
     ctx.reply(VER);
 });
+app.command('help', (ctx) => {                                       // get the version of the bot
+    ctx.reply('PlaceHolder');
+});
+
 
 app.command('url', (ctx) => {                                       // debugging
     let message =  wrapper.getE621PostIndex().then((response) => {
-        return ctx.reply(response.toString().substring(0, 100));
+        console.log(response)
+        return ctx.reply(JSON.stringify(response[0]));
         
     })
 
