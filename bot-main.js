@@ -6,7 +6,7 @@ const Telegraf = require('telegraf');                               // Telegram 
 // declare our config-based opts and other globals
 const CONFIG = require('./config/config.js');
 const Logger = require('./lib/loggerClass.js');
-const e621Lib = require('./lib/e621Wrapper.js');
+const e621Lib = require('./lib/e621HelperClass.js');
 const VER = CONFIG.VER;
 const USER_AGENT = CONFIG.USER_AGENT;
 const app = new Telegraf(CONFIG.BOT_TOKEN);
@@ -55,10 +55,9 @@ app.command('help', (ctx) => {                                       // get the 
 
 
 app.command('url', (ctx) => {                                       // debugging
-    let message =  wrapper.getE621PostIndex().then((response) => {
-        console.log(response)
-        return ctx.reply(JSON.stringify(response[0]));
-        
+    return wrapper.getE621PostIndex().then((response) => {
+        return ctx.reply(JSON.stringify(response.length));
+
     })
 
 
