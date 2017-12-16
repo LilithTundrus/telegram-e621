@@ -103,6 +103,12 @@ app.catch((err) => {
     return errHandler(err);
 })
 
+/**
+ * Send the results of an image search through the E621 API
+ * @param {JSON} teleCtx 
+ * @param {String | String[]} tagsArg 
+ * @returns {<telegraf.reply>}
+ */
 function sendMessageWithImageResults(teleCtx, tagsArg) {
     console.log(tagsArg)
     return wrapper.getE621PostIndex(tagsArg, 1)
@@ -115,6 +121,7 @@ function sendMessageWithImageResults(teleCtx, tagsArg) {
             return teleCtx.reply(urls[0].file_url);
         })
         .catch((err) => {
+            //return a message that something went wrong to the user
             return errHandler(err);
         })
 }
