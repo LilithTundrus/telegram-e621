@@ -57,7 +57,7 @@ app.command('help', (ctx) => {                                       // get the 
 });
 
 app.command('search', (ctx) => {                                       // debugging
-    if(ctx.message.text.length < 7) {
+    if(ctx.message.text.length <= 7) {
         ctx.reply('No tags given, searching most recent pictures...')
         return sendRecentMessage(ctx)
     }
@@ -122,5 +122,5 @@ function sendRecentMessage(teleCtx, tagsArg) {
  */
 function errHandler(err) {
     logger.error(err);
-    return app.telegram.sendMessage(CONFIG.TELEGRAM_ADMIN_ID, JSON.stringify(err, null, 2));
+    return app.telegram.sendMessage(CONFIG.TELEGRAM_ADMIN_ID, err.toString());
 }
