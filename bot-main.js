@@ -56,8 +56,12 @@ app.command('help', (ctx) => {                                       // get the 
     ctx.reply('PlaceHolder');
 });
 
-app.command('test', (ctx) => {                                       // debugging
-    return sendRecentMessage(ctx);
+app.command('search', (ctx) => {                                       // debugging
+    if(ctx.message.text.length < 7) {
+        ctx.reply('No tags given, searching most recent pictures...')
+        return sendRecentMessage(ctx)
+    }
+    return sendRecentMessage(ctx, ctx.message.text.trim().substring(7));
 });
 
 app.startPolling();
@@ -81,15 +85,16 @@ app.hears('🔍 Search', (ctx) => {
     ctx.reply('Give me a set of tags to search by and I\'ll give you the first image I find ')
     app.on('message', (ctx) => {
         ctx.reply('got it!')
-        return sendRecentMessage(ctx, ctx.message.text.trim());
-        
+        sendRecentMessage(ctx, ctx.message.text.trim());
+        return
         //allow for a /cancel
 
     })
 })
 
-app.catch((err) => {
 
+
+app.catch((err) => {
     return errHandler(err);
 })
 
@@ -117,5 +122,5 @@ function sendRecentMessage(teleCtx, tagsArg) {
  */
 function errHandler(err) {
     logger.error(err);
-    app.telegram.sendMessage(CONFIG.TELEGRAM_ADMIN_ID, JSON.stringify(err, null, 2));
+    return app.telegram.sendMessage(CONFIG.TELEGRAM_ADMIN_ID, JSON.stringify(err, null, 2));
 }
