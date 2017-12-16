@@ -44,10 +44,12 @@ Notes:
 //TODO: get the search function to allow for pagination
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
+app.startPolling();                                                 // start the bot and keep listening for events
 
+// #region appCommands
 app.command('start', ({ from, reply }) => {
     logger.info(`Start from ${JSON.stringify(from)}`);              // log when a new user starts the bot
-    reply('I am working! Probably..');
+    reply('Henlo! ${WELCOME_MESSAGE_HERE}');
 });
 
 app.command('whoami', (ctx) => {                                    // debugging
@@ -71,7 +73,6 @@ app.command('search', (ctx) => {                                       // debugg
     return sendMessageWithImageResults(ctx, ctx.message.text.trim().substring(7));
 });
 
-app.startPolling();
 
 app.command('custom', ({ reply }) => {
     return reply('Custom buttons keyboard', Markup
@@ -96,10 +97,11 @@ app.hears('🔍 Search', (ctx) => {
     })
 })
 
+// #endregion
+
 app.catch((err) => {
     return errHandler(err);
 })
-
 
 function sendMessageWithImageResults(teleCtx, tagsArg) {
     console.log(tagsArg)
@@ -115,7 +117,6 @@ function sendMessageWithImageResults(teleCtx, tagsArg) {
         .catch((err) => {
             return errHandler(err);
         })
-
 }
 
 /**
