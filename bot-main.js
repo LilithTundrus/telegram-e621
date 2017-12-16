@@ -74,8 +74,18 @@ app.command('custom', ({ reply }) => {
     )
 })
 
+
+
+// TODO: really make sure this works
 app.hears('🔍 Search', (ctx) => {
-    ctx.reply('AAAAAAAAAAAAAAAAAAAAAA searching')
+    ctx.reply('Give me a set of tags to search by and I\'ll give you the first image I find ')
+    app.on('message', (ctx) => {
+        ctx.reply('got it!')
+        return sendRecentMessage(ctx, ctx.message.text.trim());
+        
+        //allow for a /cancel
+
+    })
 })
 
 app.catch((err) => {
@@ -84,8 +94,9 @@ app.catch((err) => {
 })
 
 
-function sendRecentMessage(teleCtx) {
-    return wrapper.getE621PostIndex('fox +butt -hyper', 2)
+function sendRecentMessage(teleCtx, tagsArg) {
+    console.log(tagsArg)
+    return wrapper.getE621PostIndex(tagsArg, 2)
         .then((response) => {
             var urls = [];
             response.forEach((entry, index) => {
