@@ -88,10 +88,14 @@ app.catch((err) => {
  * @returns {<telegraf.reply>}
  */
 function sendMessageWithImageResults(teleCtx, tagsArg) {
-    console.log(tagsArg)
+    console.log(tagsArg);//debugging
     return wrapper.getE621PostIndexPaginate(tagsArg, 1, 60, 3)
         .then((response) => {
-            return teleCtx.reply(`I got ${response.length} pages , here's the first item: ${response[0][0].file_url}`)
+            var resultCount = 0;
+            response.forEach((entry, index) => {
+                resultCount = resultCount + entry.length;
+            })
+            return teleCtx.reply(`I got ${response.length} pages with ${resultCount} results at a page limit of 3 with 60 results per page, here's the first item: ${response[0][0].file_url}`)
         })
         .catch((err) => {
             // return a message that something went wrong to the user
