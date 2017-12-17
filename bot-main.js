@@ -88,18 +88,20 @@ app.catch((err) => {
  * @returns {<telegraf.reply>}
  */
 function sendMessageWithImageResults(teleCtx, tagsArg) {
-    console.log(tagsArg);//debugging
     return wrapper.getE621PostIndexPaginate(tagsArg, 1, 60, 3)
         .then((response) => {
-            var resultCount = 0;
-            response.forEach((entry, index) => {
-                resultCount = resultCount + entry.length;
-            })
-            return teleCtx.reply(`I got ${response.length} pages with ${resultCount} results at a page limit of 3 with 60 results per page, here's the first item: ${response[0][0].file_url}`)
+            if (response.length > 0) {
+                var resultCount = 0;
+                response.forEach((entry, index) => {
+                    resultCount = resultCount + entry.length;
+                })
+                return teleCtx.reply(`I got ${response.length} pages with ${resultCount} results at a page limit of 3 with 60 results per page, here's the first item: ${response[0][0].file_url}`);
+            }
+            teleCtx.reply(`Looks like I didn't find anything, make sure your tags are correct!`)
         })
         .catch((err) => {
             // return a message that something went wrong to the user
-            teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact {DEVELOPER_CONTACT_INFO}`)
+            teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact {DEVELOPER_CONTACT_INFO}`);
             return errHandler(err);
         })
 }
