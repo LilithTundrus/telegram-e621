@@ -36,9 +36,7 @@ Notes:
 - ctx == context of the message from telegraf
 
 //TODO: catch errors and email admins on fatal crash
-//TODO: document and clean up what we already have!
 //TODO: init help guide
-//TODO: get the search function to allow for pagination
 //TODO: get the bot to 'type' while loading requests
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
@@ -71,10 +69,6 @@ app.command('search', (ctx) => {                                       // debugg
     return sendMessageWithImageResults(ctx, ctx.message.text.trim().substring(7));
 });
 
-app.command('test', (ctx) => {                                       // get the version of the bot
-    return paginateTest(ctx)
-});
-
 // #endregion
 
 app.catch((err) => {
@@ -103,13 +97,6 @@ function sendMessageWithImageResults(teleCtx, tagsArg) {
             // return a message that something went wrong to the user
             teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact {DEVELOPER_CONTACT_INFO}`);
             return errHandler(err);
-        })
-}
-
-function paginateTest(teleCtx) {
-    return wrapper.paginateE621Endpoint()
-        .then((response) => {
-            return teleCtx.reply(`I got ${response.length} pages, here's one item: ${response[0][3].file_url}`)
         })
 }
 
