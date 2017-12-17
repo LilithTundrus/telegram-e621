@@ -37,7 +37,6 @@ Notes:
 
 //TODO: create an e621 API wrapper
 //TODO: catch errors and email admins on fatal crash
-//TODO: setup a pagination system
 //TODO: combine ENUMS and utils.js
 //TODO: document and clean up what we already have!
 //TODO: init help guide
@@ -66,36 +65,16 @@ app.command('help', (ctx) => {                                       // get the 
 
 //TODO: make this a lot more robust if we can't figure out the keyboard thing
 app.command('search', (ctx) => {                                       // debugging
-    if(ctx.message.text.length.trim() <= 7) {
+    if (ctx.message.text.length <= 7) {
         ctx.reply('No tags given, searching most recent pictures...');
         return sendMessageWithImageResults(ctx);
     }
     return sendMessageWithImageResults(ctx, ctx.message.text.trim().substring(7));
 });
 
-
-app.command('custom', ({ reply }) => {
-    return reply('Custom buttons keyboard', Markup
-        .keyboard([
-            ['🔍 Search', '😎 Popular'], // Row1 with 2 buttons
-            ['☸ Setting', '📞 Feedback'], // Row2 with 2 buttons
-        ])
-        .oneTime()
-        .resize()
-        .extra()
-    )
-})
-
-// TODO: really make sure this works
-app.hears('🔍 Search', (ctx) => {
-    ctx.reply('Give me a set of tags to search by and I\'ll give you the first image I find ')
-    app.on('message', (ctx) => {
-        ctx.reply('got it!')
-        sendMessageWithImageResults(ctx, ctx.message.text.trim());
-        return
-        //allow for a /cancel
-    })
-})
+app.command('test', (ctx) => {                                       // get the version of the bot
+    return paginateTest(ctx)
+});
 
 // #endregion
 
@@ -114,6 +93,7 @@ function sendMessageWithImageResults(teleCtx, tagsArg) {
     return wrapper.getE621PostIndex(tagsArg, 1)
         .then((response) => {
             var urls = [];
+            //TODO validate a response was returned, catch the issue
             response.forEach((entry, index) => {
                 console.log(entry);
                 urls.push(entry);
@@ -121,8 +101,16 @@ function sendMessageWithImageResults(teleCtx, tagsArg) {
             return teleCtx.reply(urls[0].file_url);
         })
         .catch((err) => {
-            //return a message that something went wrong to the user
+            // return a message that something went wrong to the user
+            teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact {DEVELOPER_CONTACT_INFO}`)
             return errHandler(err);
+        })
+}
+
+function paginateTest(teleCtx) {
+    return wrapper.test()
+        .then((response) => {
+            return teleCtx.reply(`I got ${response.length} pages, here's one item: ${response[0][3].file_url}`)
         })
 }
 
