@@ -1,17 +1,17 @@
 'use strict';
 
-// require all of our packages
+// Require all of our packages
 const Telegraf = require('telegraf');                               // Telegram API abstract for Node
 const Extra = require('telegraf/extra');                            // Extra stuff
 const Markup = require('telegraf/markup');                          // For keyboard marjup
-// declare our config-based opts and other globals
+// Declare our config-based opts and other globals
 const CONFIG = require('./config/config.js');                       // Config file for the bot
 const Logger = require('./lib/loggerClass.js');                     // Our custom logging class
 const e621Helper = require('./lib/e621HelperClass.js');             // E621 API helper class
 const VER = CONFIG.VER;
 const USER_AGENT = CONFIG.USER_AGENT;
 const app = new Telegraf(CONFIG.BOT_TOKEN);
-const logger = new Logger();                                        // Create an instance of our custom logger
+const logger = new Logger();                                        // Create an instance of our custo m logger
 const wrapper = new e621Helper();                                   // Create an instance of the API wrapper to use
 /*
 Main entry point for the bot
@@ -35,12 +35,11 @@ Notes:
 - Telegraf sometimes doesn't like it when you try to return functions for replies
 - ctx == context of the message from telegraf
 
-//TODO: create an e621 API wrapper
 //TODO: catch errors and email admins on fatal crash
-//TODO: combine ENUMS and utils.js
 //TODO: document and clean up what we already have!
 //TODO: init help guide
 //TODO: get the search function to allow for pagination
+//TODO: get the bot to 'type' while loading requests
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 app.startPolling();                                                 // start the bot and keep listening for events
@@ -90,15 +89,9 @@ app.catch((err) => {
  */
 function sendMessageWithImageResults(teleCtx, tagsArg) {
     console.log(tagsArg)
-    return wrapper.getE621PostIndex(tagsArg, 1)
+    return wrapper.getE621PostIndexPaginate(tagsArg, 1, 60, 3)
         .then((response) => {
-            var urls = [];
-            //TODO validate a response was returned, catch the issue
-            response.forEach((entry, index) => {
-                console.log(entry);
-                urls.push(entry);
-            })
-            return teleCtx.reply(urls[0].file_url);
+            return teleCtx.reply(`I got ${response.length} pages , here's the first item: ${response[0][0].file_url}`)
         })
         .catch((err) => {
             // return a message that something went wrong to the user
@@ -108,7 +101,7 @@ function sendMessageWithImageResults(teleCtx, tagsArg) {
 }
 
 function paginateTest(teleCtx) {
-    return wrapper.test()
+    return wrapper.paginateE621Endpoint()
         .then((response) => {
             return teleCtx.reply(`I got ${response.length} pages, here's one item: ${response[0][3].file_url}`)
         })
