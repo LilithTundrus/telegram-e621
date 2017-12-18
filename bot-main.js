@@ -60,6 +60,14 @@ app.command('help', (ctx) => {                                       // get the 
     ctx.reply('PlaceHolder');
 });
 
+app.command('register', (ctx) => {
+    ctx.reply('PlaceHolder');
+});
+
+app.command('profile', (ctx) => {                                       // get the version of the bot
+    ctx.reply('SELECT ${USER_PROFILE} FROM USERS');
+});
+
 app.command('search', (ctx) => {                                       // debugging
     if (ctx.message.text.length <= 7) {
         ctx.reply('No tags given, searching most recent pictures...');
@@ -110,21 +118,21 @@ function searchHandler(teleCtx, tagsArg) {
                 response.forEach((page, index) => {
                     resultCount = resultCount + page.length;
                     page.forEach((post, postIndex) => {
-                        pageContents.push(post.sample_url);
-                    })
-                })
-                //avoid the 'message too long' issue
+                        pageContents.push(post.file_url);
+                    });
+                });
+                // avoid the 'message too long' issue
                 if (pageContents.length < CONFIG.linkDefaultLimit) {
                     teleCtx.reply(`Here are your links: ${pageContents.join('\n')}`);
                 }
                 teleCtx.reply(`Here the first 25 results: ${pageContents.slice(0, 24).join('\n')}`);
-                return teleCtx.reply(`Looks like I got more than ${CONFIG.linkDefaultLimit} results! use the /limit command to change this number to be higher or lower`);
+                return teleCtx.reply(`Looks like I got more than ${CONFIG.linkDefaultLimit} results! (${pageContents.length}) use the /limit command to change this number to be higher or lower`);
             }
-            teleCtx.reply(`Looks like I didn't find anything, make sure your tags are correct!`);
+            return teleCtx.reply(`Looks like I didn't find anything, make sure your tags are correct!`);
         })
         .catch((err) => {
             // return a message that something went wrong to the user
-            teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact {DEVELOPER_CONTACT_INFO}`);
+            teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact ${CONFIG.devContactName}`);
             return errHandler(err);
         })
 }
