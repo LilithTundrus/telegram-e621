@@ -69,6 +69,15 @@ app.command('search', (ctx) => {                                       // debugg
     return sendMessageWithImageResults(ctx, ctx.message.text.trim().substring(7));
 });
 
+app.command('searchalt', (ctx) => {                                       // debugging
+    if (ctx.message.text.length <= 10) {
+        ctx.reply('No tags given, searching most recent pictures...');
+        return test(ctx);
+    }
+    return test(ctx, ctx.message.text.trim().substring(10));
+});
+
+
 // #endregion
 
 app.catch((err) => {
@@ -82,14 +91,15 @@ app.catch((err) => {
  * @returns {<telegraf.reply>}
  */
 function sendMessageWithImageResults(teleCtx, tagsArg) {
-    return wrapper.getE621PostIndexPaginate(tagsArg, 1, 60, 3)
+    return wrapper.getE621PostIndexPaginate(tagsArg, 1, CONFIG.e621DefaultPageSize, CONFIG.e621DefaultPageLimit)
         .then((response) => {
             if (response.length > 0) {
                 var resultCount = 0;
                 response.forEach((entry, index) => {
                     resultCount = resultCount + entry.length;
                 })
-                return teleCtx.reply(`I got ${response.length} pages with ${resultCount} results at a page limit of 3 with 60 results per page, here's the first item: ${response[0][0].file_url}`);
+                return teleCtx.reply(`I got ${response.length} pages with ${resultCount} results at a page limit of ${CONFIG.e621DefaultPageLimit} with ${CONFIG.e621DefaultPageSize} results per page, here's the first item: ${response[0][0].file_url}`);
+
             }
             teleCtx.reply(`Looks like I didn't find anything, make sure your tags are correct!`)
         })
@@ -99,6 +109,34 @@ function sendMessageWithImageResults(teleCtx, tagsArg) {
             return errHandler(err);
         })
 }
+
+function test(teleCtx, tagsArg) {
+    return wrapper.getE621PostIndexPaginate(tagsArg, 1, CONFIG.e621DefaultPageSize, CONFIG.e621DefaultPageLimit)
+        .then((response) => {
+            if (response.length > 0) {
+                var resultCount = 0;
+                var pageContents = [];
+                response.forEach((page, index) => {
+                    resultCount = resultCount + page.length;
+                    page.forEach((post, postIndex) => {
+                        pageContents.push(post.sample_url)
+                    })
+                })
+                teleCtx.reply(`Here are your links: ${pageContents.join('\n')}`);
+                return teleCtx.reply(`I got ${response.length} pages with ${pageContents.length} results at a page limit of 3 with 50 results per page.`);
+            }
+            teleCtx.reply(`Looks like I didn't find anything, make sure your tags are correct!`)
+        })
+        .catch((err) => {
+            // return a message that something went wrong to the user
+            teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact {DEVELOPER_CONTACT_INFO}`);
+            return errHandler(err);
+        })
+}
+
+
+// Paginate a message if it's over 4096 characters
+function messagePaginatior()
 
 /**
  * Main error handler for the bot for debugging
