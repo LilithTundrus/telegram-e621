@@ -60,21 +60,12 @@ app.command('help', (ctx) => {                                       // get the 
     ctx.reply('PlaceHolder');
 });
 
-//TODO: make this a lot more robust if we can't figure out the keyboard thing
 app.command('search', (ctx) => {                                       // debugging
     if (ctx.message.text.length <= 7) {
         ctx.reply('No tags given, searching most recent pictures...');
-        return sendMessageWithImageResults(ctx);
+        return searchHandler(ctx);
     }
-    return sendMessageWithImageResults(ctx, ctx.message.text.trim().substring(7));
-});
-
-app.command('searchalt', (ctx) => {                                       // debugging
-    if (ctx.message.text.length <= 10) {
-        ctx.reply('No tags given, searching most recent pictures...');
-        return test(ctx);
-    }
-    return test(ctx, ctx.message.text.trim().substring(10));
+    return searchHandler(ctx, ctx.message.text.trim().substring(7));
 });
 
 
@@ -110,7 +101,7 @@ function sendMessageWithImageResults(teleCtx, tagsArg) {
         })
 }
 
-function test(teleCtx, tagsArg) {
+function searchHandler(teleCtx, tagsArg) {
     return wrapper.getE621PostIndexPaginate(tagsArg, 1, CONFIG.e621DefaultPageSize, CONFIG.e621DefaultPageLimit)
         .then((response) => {
             if (response.length > 0) {
@@ -119,13 +110,17 @@ function test(teleCtx, tagsArg) {
                 response.forEach((page, index) => {
                     resultCount = resultCount + page.length;
                     page.forEach((post, postIndex) => {
-                        pageContents.push(post.sample_url)
+                        pageContents.push(post.sample_url);
                     })
                 })
-                teleCtx.reply(`Here are your links: ${pageContents.join('\n')}`);
-                return teleCtx.reply(`I got ${response.length} pages with ${pageContents.length} results at a page limit of 3 with 50 results per page.`);
+                //avoid the 'message too long' issue
+                if (pageContents.length < CONFIG.linkDefaultLimit) {
+                    teleCtx.reply(`Here are your links: ${pageContents.join('\n')}`);
+                }
+                teleCtx.reply(`Here the first 25 results: ${pageContents.slice(0, 24).join('\n')}`);
+                return teleCtx.reply(`Looks like I got more than ${CONFIG.linkDefaultLimit} results! use the /limit command to change this number to be higher or lower`);
             }
-            teleCtx.reply(`Looks like I didn't find anything, make sure your tags are correct!`)
+            teleCtx.reply(`Looks like I didn't find anything, make sure your tags are correct!`);
         })
         .catch((err) => {
             // return a message that something went wrong to the user
@@ -133,10 +128,6 @@ function test(teleCtx, tagsArg) {
             return errHandler(err);
         })
 }
-
-
-// Paginate a message if it's over 4096 characters
-function messagePaginatior()
 
 /**
  * Main error handler for the bot for debugging
