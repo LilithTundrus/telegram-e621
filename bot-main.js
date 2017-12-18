@@ -89,26 +89,6 @@ app.catch((err) => {
  * @param {String | String[]} tagsArg 
  * @returns {<telegraf.reply>}
  */
-function sendMessageWithImageResults(teleCtx, tagsArg) {
-    return wrapper.getE621PostIndexPaginate(tagsArg, 1, CONFIG.e621DefaultPageSize, CONFIG.e621DefaultPageLimit)
-        .then((response) => {
-            if (response.length > 0) {
-                var resultCount = 0;
-                response.forEach((entry, index) => {
-                    resultCount = resultCount + entry.length;
-                })
-                return teleCtx.reply(`I got ${response.length} pages with ${resultCount} results at a page limit of ${CONFIG.e621DefaultPageLimit} with ${CONFIG.e621DefaultPageSize} results per page, here's the first item: ${response[0][0].file_url}`);
-
-            }
-            teleCtx.reply(`Looks like I didn't find anything, make sure your tags are correct!`)
-        })
-        .catch((err) => {
-            // return a message that something went wrong to the user
-            teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact {DEVELOPER_CONTACT_INFO}`);
-            return errHandler(err);
-        })
-}
-
 function searchHandler(teleCtx, tagsArg) {
     return wrapper.getE621PostIndexPaginate(tagsArg, 1, CONFIG.e621DefaultPageSize, CONFIG.e621DefaultPageLimit)
         .then((response) => {
