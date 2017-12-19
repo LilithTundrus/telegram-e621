@@ -56,7 +56,7 @@ app.command('ver', (ctx) => {                                       // get the v
     ctx.reply(VER);
 });
 
-app.command('help', (ctx) => {                                       // get the version of the bot
+app.command('help', (ctx) => {                                      // get the version of the bot
     ctx.reply('PlaceHolder');
 });
 
@@ -76,12 +76,8 @@ app.command('search', (ctx) => {                                    // debugging
     return searchHandler(ctx, ctx.message.text.trim().substring(7));
 });
 
-
 // #endregion
 
-app.catch((err) => {
-    return errHandler(err);
-})
 
 /**
  * Send the results of an image search through the E621 API
