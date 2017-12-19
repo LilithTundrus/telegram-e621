@@ -38,6 +38,8 @@ Notes:
 //TODO: catch errors and email admins on fatal crash
 //TODO: init help guide
 //TODO: get the bot to 'type' while loading requests
+//TODO: set up a very basic DB
+//TODO: set up an XML parser for popular by day/week/month because that endpoint is still XML AAAAAAA
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 app.startPolling();                                                 // start the bot and keep listening for events
