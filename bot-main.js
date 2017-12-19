@@ -1,5 +1,4 @@
 'use strict';
-
 // Require all of our packages
 const Telegraf = require('telegraf');                               // Telegram API abstract for Node
 const Extra = require('telegraf/extra');                            // Extra stuff
@@ -39,7 +38,8 @@ Notes:
 //TODO: init help guide
 //TODO: get the bot to 'type' while loading requests
 //TODO: set up a very basic DB
-//TODO: set up an XML parser for popular by day/week/month because that endpoint is still XML AAAAAAA
+//TODO: set up an popular by x thing
+//TODO: add more info to each post entry
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 app.startPolling();                                                 // start the bot and keep listening for events
@@ -78,8 +78,34 @@ app.command('search', (ctx) => {                                    // debugging
     return searchHandler(ctx, ctx.message.text.trim().substring(7));
 });
 
+app.command('populartoday', (ctx) => {                             // get the version of the bot
+    return popularSearchHandler(ctx, 'daily');
+});
+
 // #endregion
 
+
+function popularSearchHandler(teleCtx, typeArg) {
+    if (typeArg == 'daily') {
+        return wrapper.getE621PopularByDayIndex()
+            // returns a single page
+            .then((response) => {
+                var pageContents = [];
+                response.forEach((post, index) => {
+                    pageContents.push(post.file_url);
+                });
+                teleCtx.reply(`Here the first 25 results: ${pageContents.slice(0, 24).join('\n')}`);
+                return teleCtx.reply(`If you would like to see more results, use /limit to increase the number of results allowed`)
+            })
+            .catch((err) => {
+                // return a message that something went wrong to the user
+                teleCtx.reply(`Looks like I ran into a problem.\n\nIf the issue persists contact ${CONFIG.devContactName}`);
+                return errHandler(err);
+            })
+    } else {
+        return teleCtx.reply(`Unsupported popularity lookup`);
+    }
+}
 
 /**
  * Send the results of an image search through the E621 API
