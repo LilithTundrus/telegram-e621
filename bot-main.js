@@ -64,11 +64,11 @@ app.command('register', (ctx) => {
     ctx.reply('PlaceHolder');
 });
 
-app.command('profile', (ctx) => {                                       // get the version of the bot
+app.command('profile', (ctx) => {                                   // get the version of the bot
     ctx.reply('SELECT ${USER_PROFILE} FROM USERS');
 });
 
-app.command('search', (ctx) => {                                       // debugging
+app.command('search', (ctx) => {                                    // debugging
     if (ctx.message.text.length <= 7) {
         ctx.reply('No tags given, searching most recent pictures...');
         return searchHandler(ctx);
@@ -108,7 +108,7 @@ function searchHandler(teleCtx, tagsArg) {
                 teleCtx.reply(`Here the first 25 results: ${pageContents.slice(0, 24).join('\n')}`);
                 return teleCtx.reply(`Looks like I got more than ${CONFIG.linkDefaultLimit} results! (${pageContents.length}) use the /limit command to change this number to be higher or lower`);
             }
-            return teleCtx.reply(`Looks like I didn't find anything, make sure your tags are correct!`);
+            return teleCtx.reply(`I couldn't find anything, make sure your tags are correct!`);
         })
         .catch((err) => {
             // return a message that something went wrong to the user
