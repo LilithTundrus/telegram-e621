@@ -61,11 +61,13 @@ function updateTelegramUserLimit(teleid, newLimit) {
 }
 
 function getTelegramUserLimit(teleid) {
-    var sql = `SELECT * FROM userdata WHERE teleid = '${teleid}'`;
-    con.query(sql, function (err, result) {
-        if (err) throw err;
-        logger.debug(result);
-        return result;
+    return new Promise((resolve, reject) => {
+        var sql = `SELECT * FROM userdata WHERE teleid = '${teleid}'`;
+        con.query(sql, function (err, result) {
+            if (err) throw err;
+            logger.debug(result);
+            return resolve(result);
+        });
     });
 }
 
