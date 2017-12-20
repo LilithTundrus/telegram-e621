@@ -7,6 +7,7 @@ const Markup = require('telegraf/markup');                          // For keybo
 const CONFIG = require('./config/config.js');                       // Config file for the bot
 const Logger = require('./lib/loggerClass.js');                     // Our custom logging class
 const e621Helper = require('./lib/e621HelperClass.js');             // E621 API helper class
+const db = require('./db/database.js');
 const VER = CONFIG.VER;
 const USER_AGENT = CONFIG.USER_AGENT;
 const app = new Telegraf(CONFIG.BOT_TOKEN);
@@ -40,8 +41,10 @@ Notes:
 //TODO: set up a very basic DB
 //TODO: set up an popular by x thing
 //TODO: add more info to each post entry
+//TODO: improve user activity logging
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
+db.connect();
 app.startPolling();                                                 // start the bot and keep listening for events
 
 // #region appCommands
@@ -69,6 +72,20 @@ app.command('register', (ctx) => {
 app.command('profile', (ctx) => {                                   // get the version of the bot
     ctx.reply('SELECT ${USER_PROFILE} FROM USERS');
 });
+
+app.command('limit', (ctx) => {                                   // get the version of the bot
+    if (ctx.message.text.trim().length <= 6) {
+        return ctx.reply('Please give a number between 1 and 50 as a limit');
+    }
+    let limitVal = ctx.message.text.substring(6).trim()
+    logger.debug(limitVal)
+    // validate number is correct
+    if (isNaN(parseInt(limitVal)) == true || limitVal.length > 2) {
+        return ctx.reply(`Sorry, ${limitVal} is not valid`);
+    }
+    return ctx.reply(`Got it, your limit is now set to ${limitVal}`);
+});
+
 
 app.command('search', (ctx) => {                                    // debugging
     if (ctx.message.text.length <= 7) {
