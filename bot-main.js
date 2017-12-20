@@ -33,11 +33,11 @@ GET a 'popular by day/week/month' thing working
 Notes:
 - Telegraf sometimes doesn't like it when you try to return functions for replies
 - ctx == context of the message from telegraf
+- e621 popular endpoints DO NOT support any url options (limit, tags, etc.)
 
 //TODO: catch errors and email admins on fatal crash
 //TODO: init help guide
 //TODO: get the bot to 'type' while loading requests
-//TODO: set up a very basic DB
 //TODO: set up an popular by x thing
 //TODO: add more info to each post entry
 //TODO: improve user activity logging
@@ -51,7 +51,7 @@ app.startPolling();                                                 // start the
 // #region appCommands
 app.command('start', ({ from, reply }) => {
     logger.info(`Start from ${JSON.stringify(from)}`);              // log when a new user starts the bot
-    reply('Henlo! ${WELCOME_MESSAGE_HERE}');
+    return reply('Henlo! ${WELCOME_MESSAGE_HERE}');
 });
 
 app.command('whoami', (ctx) => {                                    // debugging
@@ -71,7 +71,7 @@ app.command('register', (ctx) => {
 });
 
 app.command('profile', (ctx) => {                                   // get the version of the bot
-    ctx.reply('SELECT ${USER_PROFILE} FROM USERS');
+    ctx.reply('PlaceHolder');
 });
 
 app.command('limit', (ctx) => {                                   // get the version of the bot
@@ -83,7 +83,7 @@ app.command('limit', (ctx) => {                                   // get the ver
 
 app.command('search', (ctx) => {                                    // debugging
     if (ctx.message.text.length <= 7) {
-        ctx.reply('No tags given, searching most recent pictures...');
+        ctx.reply('No tags given, searching most recent...');
         return searchHandler(ctx);
     }
     return searchHandler(ctx, ctx.message.text.trim().substring(7));
@@ -95,7 +95,7 @@ app.command('populartoday', (ctx) => {                             // get the ve
 
 // #endregion
 
-
+//TODO: allow this to show all results through pagination
 function popularSearchHandler(teleCtx, typeArg) {
     if (typeArg == 'daily') {
         return wrapper.getE621PopularByDayIndex()
@@ -105,8 +105,7 @@ function popularSearchHandler(teleCtx, typeArg) {
                 response.forEach((post, index) => {
                     pageContents.push(post.file_url);
                 });
-                teleCtx.reply(`Here the first 25 results: ${pageContents.slice(0, 24).join('\n')}`);
-                return teleCtx.reply(`If you would like to see more results, use /limit to increase the number of results allowed`)
+                return teleCtx.reply(`Here the first 25 results: ${pageContents.slice(0, 24).join('\n')}`);
             })
             .catch((err) => {
                 // return a message that something went wrong to the user
@@ -116,6 +115,7 @@ function popularSearchHandler(teleCtx, typeArg) {
     } else {
         return teleCtx.reply(`Unsupported popularity lookup`);
     }
+
 }
 
 /**
@@ -151,7 +151,10 @@ function searchHandler(teleCtx, tagsArg) {
                             teleCtx.reply(`Here are your links: ${pageContents.join('\n')}`);
                         }
                         teleCtx.reply(`Here the first ${limitSetting} results: ${pageContents.slice(0, limitSetting).join('\n')}`);
-                        return teleCtx.reply(`Looks like I got more than ${limitSetting} results! (${pageContents.length}) use the /limit command to change this number to be higher or lower`);
+                        if (limitSetting == CONFIG.e621DefualtLinkLimit) {
+                            return teleCtx.reply(`Looks like I got more than ${limitSetting} results! (${pageContents.length}) use the /limit command to change this number to be higher or lower. Pages are currently only allowed up to 3`);
+                        }
+                        return;
                     }
                     return teleCtx.reply(`I couldn't find anything, make sure your tags are correct!`);
                 })
@@ -172,25 +175,22 @@ function limitSetHandler(teleCtx) {
     if (parseInt(limitVal) > 50 || parseInt(limitVal) < 1) {
         return teleCtx.reply(`Sorry, ${limitVal} is not valid (Max allowed: 50)`);
     }
-    //call the DB, make sure the user exists, if not add them by Telegram ID
+    // call the DB, make sure the user exists, if not add them by Telegram ID
     return db.getTelegramUserLimit(teleCtx.message.from.id)
         .then((userData) => {
-            logger.debug(JSON.stringify(userData[0], null, 2));
-            return teleCtx.reply(`Your old limit: ${userData[0].setlimit}`);
+            teleCtx.reply(`Your old limit: ${userData[0].setlimit}`);
+            db.updateTelegramUserLimit(teleCtx.message.from.id, limitVal);
+            return teleCtx.reply(`Your new limit: ${limitVal}`);
         })
         .catch((err) => {
-            //user does not exist
+            // user does not exist (that's the error)
             logger.debug(err);
             db.addTelegramUserLimit(teleCtx.message.from.id, limitVal);
             return teleCtx.reply(`You've been added to the databse, your custom limit is now set to ${limitVal}`);
         })
         .then(() => {
-            db.updateTelegramUserLimit(teleCtx.message.from.id, limitVal);
-            return teleCtx.reply(`Your new limit: ${limitVal}`);
+            return logger.debug(`Limit set done for ${teleCtx.message.from.id}`);
         })
-
-
-
 }
 
 /**
