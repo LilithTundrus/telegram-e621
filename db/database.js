@@ -28,22 +28,6 @@ function createUserTable() {
     });
 }
 
-function checkIfUserExists(teleid) {
-    return new Promise((resolve, reject) => {
-        var sql = `SELECT * FROM userdata WHERE teleid = '${teleid}'`;
-        con.query(sql, function (err, result) {
-            if (err) throw err;
-            if (result.length == 0) {
-                logger.debug(`No user found matching ${teleid}`);
-                return resolve(false);
-            }
-            logger.debug(`Found a user matching ${teleid}`);
-            return resolve(true);
-        });
-    })
-
-}
-
 function addTelegramUserLimit(teleid, limit) {
     var sql = `INSERT INTO userdata (teleid, setlimit) VALUES ('${teleid}', '${limit}')`;
     con.query(sql, function (err, result) {
@@ -78,6 +62,5 @@ function getTelegramUserLimit(teleid) {
 module.exports.connect = connect;
 module.exports.createUserTable = createUserTable;
 module.exports.addTelegramUserLimit = addTelegramUserLimit;
-module.exports.checkIfUserExists = checkIfUserExists;
 module.exports.updateTelegramUserLimit = updateTelegramUserLimit;
 module.exports.getTelegramUserLimit = getTelegramUserLimit;
