@@ -92,7 +92,6 @@ app.command('search', (ctx) => {                                    // debugging
 app.command('populartoday', (ctx) => {                             // get the version of the bot
     return popularSearchHandler(ctx, 'daily');
 });
-
 // #endregion
 
 //TODO: allow this to show all results through pagination
