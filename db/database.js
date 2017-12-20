@@ -29,16 +29,19 @@ function createUserTable() {
 }
 
 function checkIfUserExists(teleid) {
-    var sql = `SELECT * FROM userdata WHERE teleid = '${teleid}'`;
-    con.query(sql, function (err, result) {
-        if (err) throw err;
-        if (result.length == 0) {
-            logger.debug(`No user found matching ${teleid}`);
-            return false;
-        }
-        logger.debug(`Found a user matching ${teleid}`);
-        return true;
-    });
+    return new Promise((resolve, reject) => {
+        var sql = `SELECT * FROM userdata WHERE teleid = '${teleid}'`;
+        con.query(sql, function (err, result) {
+            if (err) throw err;
+            if (result.length == 0) {
+                logger.debug(`No user found matching ${teleid}`);
+                return resolve(false);
+            }
+            logger.debug(`Found a user matching ${teleid}`);
+            return resolve(true);
+        });
+    })
+
 }
 
 function addTelegramUserLimit(teleid, limit) {
@@ -57,9 +60,19 @@ function updateTelegramUserLimit(teleid, newLimit) {
     });
 }
 
+function getTelegramUserLimit(teleid) {
+    var sql = `SELECT * FROM userdata WHERE teleid = '${teleid}'`;
+    con.query(sql, function (err, result) {
+        if (err) throw err;
+        logger.debug(result);
+        return result;
+    });
+}
+
 
 module.exports.connect = connect;
 module.exports.createUserTable = createUserTable;
 module.exports.addTelegramUserLimit = addTelegramUserLimit;
 module.exports.checkIfUserExists = checkIfUserExists;
 module.exports.updateTelegramUserLimit = updateTelegramUserLimit;
+module.exports.getTelegramUserLimit = getTelegramUserLimit;
