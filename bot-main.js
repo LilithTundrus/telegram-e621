@@ -46,7 +46,6 @@ Notes:
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
 
-
 app.startPolling();                                                 // start the bot and keep listening for events
 
 // #region appCommands
@@ -81,7 +80,6 @@ app.command('limit', (ctx) => {                                   // get the ver
     }
     return limitSetHandler(ctx);
 });
-
 
 app.command('search', (ctx) => {                                    // debugging
     if (ctx.message.text.length <= 7) {
@@ -127,33 +125,47 @@ function popularSearchHandler(teleCtx, typeArg) {
  * @returns {<telegraf.reply>}
  */
 function searchHandler(teleCtx, tagsArg) {
-    return wrapper.getE621PostIndexPaginate(tagsArg, 1, CONFIG.e621DefaultPageSize, CONFIG.e621DefaultPageLimit)
-        .then((response) => {
-            if (response.length > 0) {
-                var resultCount = 0;
-                var pageContents = [];
-                response.forEach((page, index) => {
-                    resultCount = resultCount + page.length;
-                    page.forEach((post, postIndex) => {
-                        pageContents.push(post.file_url);
-                    });
-                });
-                // avoid the 'message too long' issue
-                if (pageContents.length < CONFIG.linkDefaultLimit) {
-                    teleCtx.reply(`Here are your links: ${pageContents.join('\n')}`);
-                }
-                teleCtx.reply(`Here the first 25 results: ${pageContents.slice(0, 24).join('\n')}`);
-                return teleCtx.reply(`Looks like I got more than ${CONFIG.linkDefaultLimit} results! (${pageContents.length}) use the /limit command to change this number to be higher or lower`);
+    let limitSetting = CONFIG.e621DefaultPageSize;
+    return db.checkIfUserExists(teleCtx.message.from.id)
+        .then((responseBool) => {
+            if (responseBool) {
+                return db.getTelegramUserLimit(teleCtx.message.from.id)
+                    .then((userData) => {
+                        limitSetting = userData[0].setlimit;
+                    })
+            } else {
+                return;
             }
-            return teleCtx.reply(`I couldn't find anything, make sure your tags are correct!`);
         })
-        .catch((err) => {
-            // return a message that something went wrong to the user
-            teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact ${CONFIG.devContactName}`);
-            return errHandler(err);
+        .then(() => {
+            return wrapper.getE621PostIndexPaginate(tagsArg, 1, limitSetting, CONFIG.e621DefaultPageLimit)
+                .then((response) => {
+                    if (response.length > 0) {
+                        var resultCount = 0;
+                        var pageContents = [];
+                        response.forEach((page, index) => {
+                            resultCount = resultCount + page.length;
+                            page.forEach((post, postIndex) => {
+                                pageContents.push(post.file_url);
+                            });
+                        });
+                        // avoid the 'message too long' issue
+                        if (pageContents.length < limitSetting) {
+                            teleCtx.reply(`Here are your links: ${pageContents.join('\n')}`);
+                        }
+                        teleCtx.reply(`Here the first ${limitSetting} results: ${pageContents.slice(0, 24).join('\n')}`);
+                        return teleCtx.reply(`Looks like I got more than ${limitSetting} results! (${pageContents.length}) use the /limit command to change this number to be higher or lower`);
+                    }
+                    return teleCtx.reply(`I couldn't find anything, make sure your tags are correct!`);
+                })
+                .catch((err) => {
+                    // return a message that something went wrong to the user
+                    teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact ${CONFIG.devContactName}`);
+                    return errHandler(err);
+                })
         })
-}
 
+}
 
 function limitSetHandler(teleCtx) {
     let limitVal = teleCtx.message.text.substring(6).trim()
@@ -163,21 +175,25 @@ function limitSetHandler(teleCtx) {
     }
     //call the DB, make sure the user exists, if not add them by Telegram ID
     return db.checkIfUserExists(teleCtx.message.from.id)
-    .then((responseBool) => {
-        /*
-        
-        // update their limit
-        db.getTelegramUserLimit();
-        db.updateTelegramUserLimit(teleCtx.message.from.id, limitVal);
-        db.addTelegramUserLimit(teleCtx.message.from.id, limitVal)
-    // add the user with their limit
-        */
-        logger.debug(responseBool)
-        if(responseBool == true) {
-            // user exists, update their limit
-        }
-        return teleCtx.reply(`Got it, your limit is now set to ${limitVal}`);
-    })
+        .then((responseBool) => {
+            logger.debug(responseBool)
+            if (responseBool == true) {
+                db.getTelegramUserLimit(teleCtx.message.from.id)
+                    .then((userData) => {
+                        logger.debug(JSON.stringify(userData[0], null, 2));
+                        return teleCtx.reply(`Your old limit: ${userData[0].setlimit}`);
+                    })
+                    .then(() => {
+                        db.updateTelegramUserLimit(teleCtx.message.from.id, limitVal);
+                        return teleCtx.reply(`Your new limit: ${limitVal}`);
+                    })
+            } else if (responseBool == false) {
+                db.addTelegramUserLimit(teleCtx.message.from.id, limitVal);
+                return teleCtx.reply(`You've been added to the databse, your custom limit is now set to ${limitVal}`);
+            } else {
+                logger.error(`Database did not return a TRUE or FALSE for finding id ${teleCtx.message.from.id}`);
+            }
+        })
 
 }
 
