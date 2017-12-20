@@ -108,7 +108,6 @@ function popularSearchHandler(teleCtx, typeArg) {
                 return teleCtx.reply(`Here the first 25 results: ${pageContents.slice(0, 24).join('\n')}`);
             })
             .catch((err) => {
-                // return a message that something went wrong to the user
                 teleCtx.reply(`Looks like I ran into a problem.\n\nIf the issue persists contact ${CONFIG.devContactName}`);
                 return errHandler(err);
             })
@@ -150,7 +149,7 @@ function searchHandler(teleCtx, tagsArg) {
                         if (pageContents.length < limitSetting) {
                             teleCtx.reply(`Here are your links: ${pageContents.join('\n')}`);
                         }
-                        teleCtx.reply(`Here the first ${limitSetting} results: ${pageContents.slice(0, limitSetting).join('\n')}`);
+                        teleCtx.reply(`Here are the first ${limitSetting} results: ${pageContents.slice(0, limitSetting).join('\n')}`);
                         if (limitSetting == CONFIG.e621DefualtLinkLimit) {
                             return teleCtx.reply(`Looks like I got more than ${limitSetting} results! (${pageContents.length}) use the /limit command to change this number to be higher or lower. Pages are currently only allowed up to 3`);
                         }
