@@ -32,7 +32,7 @@ function addTelegramUserLimit(teleid, limit) {
     var sql = `INSERT INTO userdata (teleid, setlimit) VALUES ('${teleid}', '${limit}')`;
     con.query(sql, function (err, result) {
         if (err) throw err;
-        logger.info(`Created new user with ID: ${teleid} and a limit of ${limit}`);
+        logger.auth(`Created new user with ID: ${teleid} and a limit of ${limit}`);
     });
 }
 
@@ -40,7 +40,7 @@ function updateTelegramUserLimit(teleid, newLimit) {
     var sql = `UPDATE userdata SET setlimit = '${newLimit}' WHERE teleid = '${teleid}'`;
     con.query(sql, function (err, result) {
         if (err) throw err;
-        logger.info(`Updated limit for user with ID: ${teleid} to ${newLimit}`);
+        logger.auth(`Updated limit for user with ID: ${teleid} to ${newLimit}`);
     });
 }
 
