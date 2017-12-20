@@ -45,6 +45,8 @@ Notes:
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
+
+
 app.startPolling();                                                 // start the bot and keep listening for events
 
 // #region appCommands
@@ -77,13 +79,7 @@ app.command('limit', (ctx) => {                                   // get the ver
     if (ctx.message.text.trim().length <= 6) {
         return ctx.reply('Please give a number between 1 and 50 as a limit');
     }
-    let limitVal = ctx.message.text.substring(6).trim()
-    logger.debug(limitVal)
-    // validate number is correct
-    if (isNaN(parseInt(limitVal)) == true || limitVal.length > 2) {
-        return ctx.reply(`Sorry, ${limitVal} is not valid`);
-    }
-    return ctx.reply(`Got it, your limit is now set to ${limitVal}`);
+    return limitSetHandler(ctx);
 });
 
 
@@ -156,6 +152,33 @@ function searchHandler(teleCtx, tagsArg) {
             teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact ${CONFIG.devContactName}`);
             return errHandler(err);
         })
+}
+
+
+function limitSetHandler(teleCtx) {
+    let limitVal = teleCtx.message.text.substring(6).trim()
+    // validate number is correct
+    if (isNaN(parseInt(limitVal)) == true || limitVal.length > 2) {
+        return teleCtx.reply(`Sorry, ${limitVal} is not valid`);
+    }
+    //call the DB, make sure the user exists, if not add them by Telegram ID
+    return db.checkIfUserExists(teleCtx.message.from.id)
+    .then((responseBool) => {
+        /*
+        
+        // update their limit
+        db.getTelegramUserLimit();
+        db.updateTelegramUserLimit(teleCtx.message.from.id, limitVal);
+        db.addTelegramUserLimit(teleCtx.message.from.id, limitVal)
+    // add the user with their limit
+        */
+        logger.debug(responseBool)
+        if(responseBool == true) {
+            // user exists, update their limit
+        }
+        return teleCtx.reply(`Got it, your limit is now set to ${limitVal}`);
+    })
+
 }
 
 /**
