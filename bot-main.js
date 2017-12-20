@@ -15,12 +15,11 @@ const logger = new Logger();                                        // Create an
 const wrapper = new e621Helper();                                   // Create an instance of the API wrapper to use
 /*
 Main entry point for the bot
-
 Steps:
 Get config opts
 Set up logging
 Init the bot
-Connect to DB (eventually)
+Connect to DB
 ...more when I can think of it
 
 Feature intent:
@@ -42,10 +41,11 @@ Notes:
 //TODO: set up an popular by x thing
 //TODO: add more info to each post entry
 //TODO: improve user activity logging
+//TODO: improve limit settings/db calls
+//TODO: allow for page limit AND an items per page limit
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
-
 app.startPolling();                                                 // start the bot and keep listening for events
 
 // #region appCommands
@@ -125,17 +125,14 @@ function popularSearchHandler(teleCtx, typeArg) {
  * @returns {<telegraf.reply>}
  */
 function searchHandler(teleCtx, tagsArg) {
-    let limitSetting = CONFIG.e621DefaultPageSize;
-    return db.checkIfUserExists(teleCtx.message.from.id)
-        .then((responseBool) => {
-            if (responseBool) {
-                return db.getTelegramUserLimit(teleCtx.message.from.id)
-                    .then((userData) => {
-                        limitSetting = userData[0].setlimit;
-                    })
-            } else {
-                return;
-            }
+    let limitSetting = CONFIG.e621DefualtLinkLimit;
+    return db.getTelegramUserLimit(teleCtx.message.from.id)
+        .then((userData) => {
+            return limitSetting = userData[0].setlimit;
+        })
+        .catch((err) => {
+            // there is no user with this ID, use defaults
+            return logger.debug(err);
         })
         .then(() => {
             return wrapper.getE621PostIndexPaginate(tagsArg, 1, limitSetting, CONFIG.e621DefaultPageLimit)
@@ -153,7 +150,7 @@ function searchHandler(teleCtx, tagsArg) {
                         if (pageContents.length < limitSetting) {
                             teleCtx.reply(`Here are your links: ${pageContents.join('\n')}`);
                         }
-                        teleCtx.reply(`Here the first ${limitSetting} results: ${pageContents.slice(0, 24).join('\n')}`);
+                        teleCtx.reply(`Here the first ${limitSetting} results: ${pageContents.slice(0, limitSetting).join('\n')}`);
                         return teleCtx.reply(`Looks like I got more than ${limitSetting} results! (${pageContents.length}) use the /limit command to change this number to be higher or lower`);
                     }
                     return teleCtx.reply(`I couldn't find anything, make sure your tags are correct!`);
@@ -164,7 +161,6 @@ function searchHandler(teleCtx, tagsArg) {
                     return errHandler(err);
                 })
         })
-
 }
 
 function limitSetHandler(teleCtx) {
@@ -173,27 +169,27 @@ function limitSetHandler(teleCtx) {
     if (isNaN(parseInt(limitVal)) == true || limitVal.length > 2) {
         return teleCtx.reply(`Sorry, ${limitVal} is not valid`);
     }
+    if (parseInt(limitVal) > 50 || parseInt(limitVal) < 1) {
+        return teleCtx.reply(`Sorry, ${limitVal} is not valid (Max allowed: 50)`);
+    }
     //call the DB, make sure the user exists, if not add them by Telegram ID
-    return db.checkIfUserExists(teleCtx.message.from.id)
-        .then((responseBool) => {
-            logger.debug(responseBool)
-            if (responseBool == true) {
-                db.getTelegramUserLimit(teleCtx.message.from.id)
-                    .then((userData) => {
-                        logger.debug(JSON.stringify(userData[0], null, 2));
-                        return teleCtx.reply(`Your old limit: ${userData[0].setlimit}`);
-                    })
-                    .then(() => {
-                        db.updateTelegramUserLimit(teleCtx.message.from.id, limitVal);
-                        return teleCtx.reply(`Your new limit: ${limitVal}`);
-                    })
-            } else if (responseBool == false) {
-                db.addTelegramUserLimit(teleCtx.message.from.id, limitVal);
-                return teleCtx.reply(`You've been added to the databse, your custom limit is now set to ${limitVal}`);
-            } else {
-                logger.error(`Database did not return a TRUE or FALSE for finding id ${teleCtx.message.from.id}`);
-            }
+    return db.getTelegramUserLimit(teleCtx.message.from.id)
+        .then((userData) => {
+            logger.debug(JSON.stringify(userData[0], null, 2));
+            return teleCtx.reply(`Your old limit: ${userData[0].setlimit}`);
         })
+        .catch((err) => {
+            //user does not exist
+            logger.debug(err);
+            db.addTelegramUserLimit(teleCtx.message.from.id, limitVal);
+            return teleCtx.reply(`You've been added to the databse, your custom limit is now set to ${limitVal}`);
+        })
+        .then(() => {
+            db.updateTelegramUserLimit(teleCtx.message.from.id, limitVal);
+            return teleCtx.reply(`Your new limit: ${limitVal}`);
+        })
+
+
 
 }
 
