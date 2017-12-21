@@ -1,8 +1,11 @@
 'use strict';
 // Require all of our packages
-const Telegraf = require('telegraf');                               // Telegram API abstract for Node
-const Extra = require('telegraf/extra');                            // Extra stuff
-const Markup = require('telegraf/markup');                          // For keyboard marjup
+const Telegraf = require('telegraf')
+const Composer = require('telegraf/composer')
+const session = require('telegraf/session')
+const Stage = require('telegraf/stage')
+const Markup = require('telegraf/markup')
+const WizardScene = require('telegraf/scenes/wizard')
 // Declare our config-based opts and other globals
 const CONFIG = require('./config/config.js');                       // Config file for the bot
 const Logger = require('./lib/loggerClass.js');                     // Our custom logging class
@@ -43,6 +46,8 @@ Notes:
 //TODO: improve user activity logging
 //TODO: improve limit settings/db calls
 //TODO: allow for page limit AND an items per page limit
+//TODO allow a user to set a blacklist
+//TODO set up a better keyboard thing
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
@@ -92,6 +97,18 @@ app.command('search', (ctx) => {                                    // debugging
 app.command('populartoday', (ctx) => {                             // get the version of the bot
     return popularSearchHandler(ctx, 'daily');
 });
+
+app.command('custom', ({ reply }) => {
+    return reply('Select an option', Markup
+        .keyboard([
+            ['🔍 Search', '😎 Popular'],
+            ['☸ Setting', '📞 Feedback'],
+        ])
+        .oneTime()
+        .resize()
+        .extra()
+    )
+});
 // #endregion
 
 //TODO: allow this to show all results through pagination
@@ -100,11 +117,10 @@ function popularSearchHandler(teleCtx, typeArg) {
         return wrapper.getE621PopularByDayIndex()
             // returns a single page
             .then((response) => {
-                var pageContents = [];
-                response.forEach((post, index) => {
-                    pageContents.push(post.file_url);
-                });
-                return teleCtx.reply(`Here the first 25 results: ${pageContents.slice(0, 24).join('\n')}`);
+                return pushFileUrlToArray(response)
+                    .then((pageContents) => {
+                        return teleCtx.reply(`Here the first 25 results: ${pageContents.slice(0, 24).join('\n')}`);
+                    })
             })
             .catch((err) => {
                 teleCtx.reply(`Looks like I ran into a problem.\n\nIf the issue persists contact ${CONFIG.devContactName}`);
@@ -198,4 +214,19 @@ function limitSetHandler(teleCtx) {
 function errHandler(err) {
     logger.error(err);
     return app.telegram.sendMessage(CONFIG.TELEGRAM_ADMIN_ID, err.toString());
+}
+
+/**
+ * Iterate through a JSON e621Page and push each file_url to an array
+ * @param {JSON} e621Page 
+ * @returns {Promise}
+ */
+function pushFileUrlToArray(e621Page) {
+    var pageContents = [];
+    return new Promise((resolve, reject) => {
+        e621Page.forEach((post, index) => {
+            pageContents.push(post.file_url);
+        });
+        return resolve(pageContents);
+    });
 }
