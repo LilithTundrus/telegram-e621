@@ -28,6 +28,11 @@ function createUserTable() {
     });
 }
 
+/**
+ * Add a user to the userdata table
+ * @param {Number} teleid 
+ * @param {Number} limit 
+ */
 function addTelegramUserLimit(teleid, limit) {
     var sql = `INSERT INTO userdata (teleid, setlimit) VALUES ('${teleid}', '${limit}')`;
     con.query(sql, function (err, result) {
@@ -36,6 +41,11 @@ function addTelegramUserLimit(teleid, limit) {
     });
 }
 
+/**
+ * Update an existing user's limitset
+ * @param {Number} teleid 
+ * @param {Number} newLimit 
+ */
 function updateTelegramUserLimit(teleid, newLimit) {
     var sql = `UPDATE userdata SET setlimit = '${newLimit}' WHERE teleid = '${teleid}'`;
     con.query(sql, function (err, result) {
@@ -44,6 +54,11 @@ function updateTelegramUserLimit(teleid, newLimit) {
     });
 }
 
+/**
+ * Get a user's limit by their Telegram ID
+ * @param {Number} teleid 
+ * @returns {JSON}
+ */
 function getTelegramUserLimit(teleid) {
     return new Promise((resolve, reject) => {
         var sql = `SELECT * FROM userdata WHERE teleid = '${teleid}'`;
