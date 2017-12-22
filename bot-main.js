@@ -5,7 +5,6 @@ const Composer = require('telegraf/composer');
 const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Markup = require('telegraf/markup');
-const WizardScene = require('telegraf/scenes/wizard');
 const Scene = require('telegraf/scenes/base');
 // Declare our config-based opts and other globals
 const CONFIG = require('./config/config.js');                       // Config file for the bot
@@ -19,12 +18,6 @@ const logger = new Logger();                                        // Create an
 const wrapper = new e621Helper();                                   // Create an instance of the API wrapper to use
 /*
 Main entry point for the bot
-Steps:
-Get config opts
-Set up logging
-Init the bot
-Connect to DB
-...more when I can think of it
 
 Feature intent:
 Be able to do basically anything you can on the e621 site
