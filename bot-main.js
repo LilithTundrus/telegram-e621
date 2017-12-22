@@ -65,10 +65,11 @@ searchScene.on('text', (ctx) => {
         // clear the var
         searchFromID == '';
         return searchHandler(ctx, ctx.message.text.trim());
+        // enter the searchPaginate scene
     }
 });
 
-// Search scene
+// Search scene TODO: ADD an ALLTIME listener/handler
 const popularScene = new Scene('popular');
 var popFromID;
 popularScene.enter((ctx) => {
@@ -94,7 +95,7 @@ app.command('start', ({ from, reply }) => {
     return reply('Henlo! ${WELCOME_MESSAGE_HERE}');
 });
 
-app.command('help', (ctx) => {                                      // get the version of the bot
+app.command('help', (ctx) => {                                      // send the help command info
     ctx.reply('PlaceHolder');
 });
 
@@ -102,18 +103,18 @@ app.command('register', (ctx) => {
     ctx.reply('PlaceHolder');
 });
 
-app.command('profile', (ctx) => {                                   // get the version of the bot
+app.command('profile', (ctx) => {                                   // get a user profile
     ctx.reply('PlaceHolder');
 });
 
-app.command('limit', (ctx) => {                                     // get the version of the bot
+app.command('limit', (ctx) => {                                     // set a user's custom limit
     if (ctx.message.text.trim().length <= 6) {
         return ctx.reply('Please give a number between 1 and 50 as a limit');
     }
     return limitSetHandler(ctx);
 });
 
-//Note: this should eventually be removed
+// Note: this should eventually be removed
 app.command('search', (ctx) => {                                    // debugging
     if (ctx.message.text.length <= 7) {
         ctx.reply('No tags given, searching most recent...');
@@ -205,6 +206,48 @@ function searchHandler(teleCtx, tagsArg) {
         })
 }
 
+function searchHandlerAlt(teleCtx, tagsArg) {
+    //simply GET the set of images and return them as an array to be pages through
+    let limitSetting = CONFIG.e621DefualtLinkLimit;
+    return db.getTelegramUserLimit(teleCtx.message.from.id)
+        .then((userData) => {
+            return limitSetting = userData[0].setlimit;
+        })
+        .catch((err) => {
+            // there is no user with this ID, use defaults
+            return logger.debug(err);
+        })
+        .then(() => {
+            return wrapper.getE621PostIndexPaginate(tagsArg, 1, limitSetting, CONFIG.e621DefaultPageLimit)
+                .then((response) => {
+                    if (response.length > 0) {
+                        var resultCount = 0;
+                        var pageContents = [];
+                        response.forEach((page, index) => {
+                            resultCount = resultCount + page.length;
+                            page.forEach((post, postIndex) => {
+                                pageContents.push(post);
+                            });
+                        });
+                        //return the first result. on a NEXT command send the next item as an edit
+                        if (pageContents.length < limitSetting) {
+                            teleCtx.reply(`Here are your links: ${pageContents.join('\n')}`);
+                        }
+                        teleCtx.reply(`Here are the first ${limitSetting} results: ${pageContents.slice(0, limitSetting).join('\n')}`);
+                        if (limitSetting == CONFIG.e621DefualtLinkLimit) {
+                            return teleCtx.reply(`Looks like I got more than ${limitSetting} results! (${pageContents.length}) use the /limit command to change this number to be higher or lower. Pages are currently only allowed up to 3`);
+                        }
+                        return;
+                    }
+                    return teleCtx.reply(`I couldn't find anything, make sure your tags are correct!`);
+                })
+                .catch((err) => {
+                    teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact ${CONFIG.devContactName}`);
+                    return errHandler(err);
+                })
+        })
+}
+
 function limitSetHandler(teleCtx) {
     let limitVal = teleCtx.message.text.substring(6).trim();
     // validate number is correct
@@ -236,4 +279,8 @@ function limitSetHandler(teleCtx) {
 function errHandler(err) {
     logger.error(err);
     return app.telegram.sendMessage(CONFIG.TELEGRAM_ADMIN_ID, err.toString());
+}
+
+function pageThroughPostArray(array, index) {
+    return array[index];
 }
