@@ -45,6 +45,7 @@ Notes:
 //TODO: set up a better keyboard thing (scenes)
 //TODO: allow user logins
 //TODO set up a popular scene
+//TODO setup a state machine for each user
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
@@ -68,12 +69,24 @@ searchScene.on('text', (ctx) => {
     }
 });
 
-const stage = new Stage([searchScene], { ttl: 30 });
+// Search scene
+const popularScene = new Scene('popular');
+var popFromID;
+popularScene.enter((ctx) => {
+    // record the caller's ID
+    popFromID = ctx.from.id;
+    logger.debug(popFromID);
+    ctx.reply(`Available options: /daily, /weekly /monthly /alltime`);
+});
+popularScene.leave((ctx) => ctx.reply('exiting popular scene'));
+popularScene.command('back', leave());
+popularScene.command('daily', (ctx) => popularSearchHandler(ctx, 'daily'));
 
+
+const stage = new Stage([searchScene, popularScene], { ttl: 30 });
 app.startPolling();                                                 // start the bot and keep listening for events
 app.use(session());
 app.use(stage.middleware());
-
 
 // #region appCommands
 app.command('start', ({ from, reply }) => {
@@ -133,6 +146,8 @@ app.command('menu', ({ reply }) => {
 });
 
 app.hears('🔍 Search', enter('search'));
+app.hears('😎 Popular', enter('popular'));
+
 // #endregion
 
 
