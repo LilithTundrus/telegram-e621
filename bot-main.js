@@ -12,7 +12,6 @@ const Logger = require('./lib/loggerClass.js');                     // Our custo
 const e621Helper = require('./lib/e621HelperClass.js');             // E621 API helper class
 const db = require('./db/database.js');
 const VER = CONFIG.VER;
-const USER_AGENT = CONFIG.USER_AGENT;
 const app = new Telegraf(CONFIG.BOT_TOKEN);
 const logger = new Logger();                                        // Create an instance of our custom logger
 const wrapper = new e621Helper();                                   // Create an instance of the API wrapper to use
@@ -36,7 +35,6 @@ Notes:
 //TODO: catch errors and email admins on fatal crash
 //TODO: init help guide
 //TODO: get the bot to 'type' while loading requests
-//TODO: set up an popular by x thing
 //TODO: add more info to each post entry
 //TODO: improve user activity logging
 //TODO: improve limit settings/db calls
@@ -44,7 +42,6 @@ Notes:
 //TODO: allow a user to set a blacklist
 //TODO: set up a better keyboard thing (scenes)
 //TODO: allow user logins
-//TODO set up a popular scene
 //TODO setup a state machine for each user
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
