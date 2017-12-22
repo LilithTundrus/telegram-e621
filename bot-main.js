@@ -81,6 +81,10 @@ popularScene.enter((ctx) => {
 popularScene.leave((ctx) => ctx.reply('exiting popular scene'));
 popularScene.command('back', leave());
 popularScene.command('daily', (ctx) => popularSearchHandler(ctx, 'daily'));
+popularScene.command('weekly', (ctx) => popularSearchHandler(ctx, 'weekly'));
+popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
+
+
 
 
 const stage = new Stage([searchScene, popularScene], { ttl: 30 });
@@ -151,24 +155,18 @@ app.hears('😎 Popular', enter('popular'));
 // #endregion
 
 
-// TODO: allow this to show all results through pagination
 function popularSearchHandler(teleCtx, typeArg) {
-    if (typeArg == 'daily') {
-        return wrapper.getE621PopularByDayIndex()
-            .then((response) => {                                   // returns a single page
-                return wrapper.pushFileUrlToArray(response)
-                    .then((pageContents) => {
-                        return teleCtx.reply(`Top 25 most popular posts today: ${pageContents.slice(0, 24).join('\n')}`);
-                    })
-            })
-            .catch((err) => {
-                teleCtx.reply(`Looks like I ran into a problem.\n\nIf the issue persists contact ${CONFIG.devContactName}`);
-                return errHandler(err);
-            })
-    } else {
-        return teleCtx.reply(`Unsupported popularity lookup`);
-    }
-
+    return wrapper.popularURLHanlder(typeArg)
+        .then((response) => {                                   // returns a single page
+            return wrapper.pushFileUrlToArray(response)
+                .then((pageContents) => {
+                    return teleCtx.reply(`Top 25 most popular posts ${typeArg}: ${pageContents.slice(0, 24).join('\n')}`);
+                })
+        })
+        .catch((err) => {
+            teleCtx.reply(`Looks like I ran into a problem.\n\nIf the issue persists contact ${CONFIG.devContactName}`);
+            return errHandler(err);
+        })
 }
 
 /**
