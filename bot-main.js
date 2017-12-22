@@ -10,14 +10,13 @@ const Scene = require('telegraf/scenes/base');
 const CONFIG = require('./config/config.js');                       // Config file for the bot
 const Logger = require('./lib/loggerClass.js');                     // Our custom logging class
 const e621Helper = require('./lib/e621HelperClass.js');             // E621 API helper class
-const db = require('./db/database.js');
+const db = require('./db/database.js');                             // Custom DB abstractor
 const VER = CONFIG.VER;
 const app = new Telegraf(CONFIG.BOT_TOKEN);
 const logger = new Logger();                                        // Create an instance of our custom logger
 const wrapper = new e621Helper();                                   // Create an instance of the API wrapper to use
 const { enter, leave } = Stage;
-/*
-Main entry point for the bot
+/* Main entry point for the bot
 
 Feature intent:
 Be able to do basically anything you can on the e621 site
@@ -32,7 +31,7 @@ Notes:
 - ctx == context of the message from telegraf
 - e621 popular endpoints DO NOT support any url options (limit, tags, etc.)
 
-//TODO: catch errors and email admins on fatal crash
+//TODO: catch errors better! and email admins on fatal crash
 //TODO: init help guide
 //TODO: get the bot to 'type' while loading requests
 //TODO: add more info to each post entry
@@ -44,6 +43,8 @@ Notes:
 //TODO: allow user logins
 //TODO: setup a state machine for each user
 //TODO: fix the scenes not working when @ is used in groups 
+//TODO: with the search scene, create another keyboard to allow for
+scrolling through the results of a search!!
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
@@ -82,7 +83,6 @@ popularScene.command('daily', (ctx) => popularSearchHandler(ctx, 'daily'));
 popularScene.command('weekly', (ctx) => popularSearchHandler(ctx, 'weekly'));
 popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
 
-
 const stage = new Stage([searchScene, popularScene], { ttl: 30 });
 app.startPolling();                                                 // start the bot and keep listening for events
 app.use(session());
@@ -92,14 +92,6 @@ app.use(stage.middleware());
 app.command('start', ({ from, reply }) => {
     logger.info(`Start from ${JSON.stringify(from)}`);              // log when a new user starts the bot
     return reply('Henlo! ${WELCOME_MESSAGE_HERE}');
-});
-
-app.command('whoami', (ctx) => {                                    // debugging
-    ctx.reply(ctx.message.from.username);
-});
-
-app.command('ver', (ctx) => {                                       // get the version of the bot
-    ctx.reply(VER);
 });
 
 app.command('help', (ctx) => {                                      // get the version of the bot
@@ -121,16 +113,13 @@ app.command('limit', (ctx) => {                                     // get the v
     return limitSetHandler(ctx);
 });
 
+//Note: this should eventually be removed
 app.command('search', (ctx) => {                                    // debugging
     if (ctx.message.text.length <= 7) {
         ctx.reply('No tags given, searching most recent...');
         return searchHandler(ctx);
     }
     return searchHandler(ctx, ctx.message.text.trim().substring(7));
-});
-
-app.command('populartoday', (ctx) => {                             // get the version of the bot
-    return popularSearchHandler(ctx, 'daily');
 });
 
 app.command('menu', ({ reply }) => {
@@ -147,6 +136,13 @@ app.command('menu', ({ reply }) => {
 
 app.hears('🔍 Search', enter('search'));
 app.hears('😎 Popular', enter('popular'));
+// #endregion
+
+// #region adminCommands
+//TODO: validate those who call this are admins
+app.command('ver', (ctx) => {                                       // get the version of the bot
+    ctx.reply(VER);
+});
 // #endregion
 
 function popularSearchHandler(teleCtx, typeArg) {
@@ -210,10 +206,10 @@ function searchHandler(teleCtx, tagsArg) {
 }
 
 function limitSetHandler(teleCtx) {
-    let limitVal = teleCtx.message.text.substring(6).trim()
+    let limitVal = teleCtx.message.text.substring(6).trim();
     // validate number is correct
     if (isNaN(parseInt(limitVal)) == true || limitVal.length > 2) {
-        return teleCtx.reply(`Sorry, ${limitVal} is not valid`);
+        return teleCtx.reply(`Sorry, ${limitVal} is not valid (Max allowed: 50)`);
     }
     if (parseInt(limitVal) > 50 || parseInt(limitVal) < 1) {
         return teleCtx.reply(`Sorry, ${limitVal} is not valid (Max allowed: 50)`);
@@ -230,9 +226,6 @@ function limitSetHandler(teleCtx) {
             logger.debug(err);
             db.addTelegramUserLimit(teleCtx.message.from.id, limitVal);
             return teleCtx.reply(`You've been added to the databse, your custom limit is now set to ${limitVal}`);
-        })
-        .then(() => {
-            return logger.debug(`Limit set done for ${teleCtx.message.from.id}`);
         })
 }
 
