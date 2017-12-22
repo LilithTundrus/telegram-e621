@@ -1,11 +1,12 @@
 'use strict';
 // Require all of our packages
-const Telegraf = require('telegraf')
-const Composer = require('telegraf/composer')
-const session = require('telegraf/session')
-const Stage = require('telegraf/stage')
-const Markup = require('telegraf/markup')
-const WizardScene = require('telegraf/scenes/wizard')
+const Telegraf = require('telegraf');
+const Composer = require('telegraf/composer');
+const session = require('telegraf/session');
+const Stage = require('telegraf/stage');
+const Markup = require('telegraf/markup');
+const WizardScene = require('telegraf/scenes/wizard');
+const Scene = require('telegraf/scenes/base');
 // Declare our config-based opts and other globals
 const CONFIG = require('./config/config.js');                       // Config file for the bot
 const Logger = require('./lib/loggerClass.js');                     // Our custom logging class
@@ -14,7 +15,7 @@ const db = require('./db/database.js');
 const VER = CONFIG.VER;
 const USER_AGENT = CONFIG.USER_AGENT;
 const app = new Telegraf(CONFIG.BOT_TOKEN);
-const logger = new Logger();                                        // Create an instance of our custo m logger
+const logger = new Logger();                                        // Create an instance of our custom logger
 const wrapper = new e621Helper();                                   // Create an instance of the API wrapper to use
 /*
 Main entry point for the bot
@@ -46,53 +47,34 @@ Notes:
 //TODO: improve user activity logging
 //TODO: improve limit settings/db calls
 //TODO: allow for page limit AND an items per page limit
-//TODO allow a user to set a blacklist
-//TODO set up a better keyboard thing
+//TODO: allow a user to set a blacklist
+//TODO: set up a better keyboard thing (scenes)
+//TODO: allow user logins
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
 
+const { enter, leave } = Stage
+
+// Echo scene
+const echoScene = new Scene('echo')
+echoScene.enter((ctx) => ctx.reply('echo scene'))
+echoScene.leave((ctx) => ctx.reply('exiting echo scene'))
+echoScene.command('back', leave())
+echoScene.on('text', (ctx) => ctx.reply(ctx.message.text))
+echoScene.on('message', (ctx) => ctx.reply('Only text messages please'))
 
 
 
-const stepHandler = new Composer()
-stepHandler.action('next', (ctx) => {
-    ctx.reply('Step 2. Via inline button')
-    return ctx.wizard.next()
-})
-stepHandler.command('next', (ctx) => {
-    ctx.reply('Step 2. Via command')
-    return ctx.wizard.next()
-})
-stepHandler.use((ctx) => ctx.replyWithMarkdown('Press `Next` button or type /next'))
-
-const superWizard = new WizardScene('super-wizard',
-    (ctx) => {
-        ctx.reply('Step 1', Markup.inlineKeyboard([
-            Markup.urlButton('❤️', 'http://telegraf.js.org'),
-            Markup.callbackButton('➡️ Next', 'next')
-        ]).extra())
-        return ctx.wizard.next()
-    },
-    stepHandler,
-    (ctx) => {
-        ctx.reply('Step 3')
-        return ctx.wizard.next()
-    },
-    (ctx) => {
-        ctx.reply('Step 4')
-        return ctx.wizard.next()
-    },
-    (ctx) => {
-        ctx.reply('Done')
-        return ctx.scene.leave()
-    }
-)
-
-const stage = new Stage([superWizard], { default: 'super-wizard' });
 app.startPolling();                                                 // start the bot and keep listening for events
 app.use(session());
-app.use(stage.middleware());
+const stage = new Stage([echoScene], { ttl: 10 })
+
+app.use(stage.middleware())
+
+
+
+
 // #region appCommands
 app.command('start', ({ from, reply }) => {
     logger.info(`Start from ${JSON.stringify(from)}`);              // log when a new user starts the bot
@@ -119,7 +101,7 @@ app.command('profile', (ctx) => {                                   // get the v
     ctx.reply('PlaceHolder');
 });
 
-app.command('limit', (ctx) => {                                   // get the version of the bot
+app.command('limit', (ctx) => {                                     // get the version of the bot
     if (ctx.message.text.trim().length <= 6) {
         return ctx.reply('Please give a number between 1 and 50 as a limit');
     }
@@ -149,11 +131,12 @@ app.command('custom', ({ reply }) => {
         .extra()
     )
 });
+
+app.hears('🔍 Search', ctx => {
+    ctx.reply('Yay!')
+})
+app.hears('📞 Feedback', enter('echo'));
 // #endregion
-
-
-
-
 
 
 
@@ -277,3 +260,4 @@ function pushFileUrlToArray(e621Page) {
         return resolve(pageContents);
     });
 }
+
