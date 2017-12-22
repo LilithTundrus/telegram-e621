@@ -66,7 +66,7 @@ searchScene.on('text', (ctx) => {
     if (ctx.from.id == searchFromID) {
         // clear the var
         searchFromID == '';
-        return searchHandler( ctx, ctx.message.text.trim());
+        return searchHandler(ctx, ctx.message.text.trim());
     }
 });
 
@@ -77,11 +77,19 @@ popularScene.enter((ctx) => {
     // record the caller's ID
     popFromID = ctx.from.id;
     logger.debug(popFromID);
-    ctx.reply(`Available options: /daily, /weekly /monthly /alltime`);
+    return ctx.reply(`Available options: /daily, /weekly /monthly /alltime`), Markup
+        .keyboard([
+            ['Daily', 'Weekly'],
+            ['Monthly', 'All Time'],
+        ])
+        .oneTime()
+        .resize()
 });
 popularScene.leave((ctx) => ctx.reply('exiting popular scene'));
 popularScene.command('back', leave());
-popularScene.command('daily', (ctx) => popularSearchHandler(ctx, 'daily'));
+popularScene.command('daily', (ctx) => {
+    popularSearchHandler(ctx, 'daily');
+});
 popularScene.command('weekly', (ctx) => popularSearchHandler(ctx, 'weekly'));
 popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
 
@@ -180,6 +188,9 @@ function searchHandler(teleCtx, tagsArg) {
         .then(() => {
             return wrapper.getE621PostIndexPaginate(tagsArg, 1, limitSetting, CONFIG.e621DefaultPageLimit)
                 .then((response) => {
+                    if(!response) {
+                        return teleCtx.reply(`I couldn't find anything, make sure your tags are correct!`);
+                    }
                     if (response.length > 0) {
                         var resultCount = 0;
                         var pageContents = [];
