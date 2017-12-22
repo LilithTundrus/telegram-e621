@@ -16,6 +16,7 @@ const USER_AGENT = CONFIG.USER_AGENT;
 const app = new Telegraf(CONFIG.BOT_TOKEN);
 const logger = new Logger();                                        // Create an instance of our custom logger
 const wrapper = new e621Helper();                                   // Create an instance of the API wrapper to use
+const { enter, leave } = Stage;
 /*
 Main entry point for the bot
 
@@ -43,29 +44,34 @@ Notes:
 //TODO: allow a user to set a blacklist
 //TODO: set up a better keyboard thing (scenes)
 //TODO: allow user logins
+//TODO set up a popular scene
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
 
-const { enter, leave } = Stage;
-
 // Search scene
 const searchScene = new Scene('search');
+var searchFromID;
 searchScene.enter((ctx) => {
     // record the caller's ID
-    ctx.reply('search scene')
+    searchFromID = ctx.from.id;
+    logger.debug(searchFromID);
+    ctx.reply(`Give me some tags to search by. use /back when you're done.`);
 });
 searchScene.leave((ctx) => ctx.reply('exiting search scene'));
 searchScene.command('back', leave());
 searchScene.on('text', (ctx) => {
-    searchHandler(ctx, ctx.message.text.trim())
+    if (ctx.from.id == searchFromID) {
+        // clear the var
+        searchFromID == '';
+        return searchHandler(ctx, ctx.message.text.trim());
+    }
 });
 
+const stage = new Stage([searchScene], { ttl: 30 });
 
 app.startPolling();                                                 // start the bot and keep listening for events
 app.use(session());
-const stage = new Stage([searchScene], { ttl: 30 });
-
 app.use(stage.middleware());
 
 
@@ -114,11 +120,11 @@ app.command('populartoday', (ctx) => {                             // get the ve
     return popularSearchHandler(ctx, 'daily');
 });
 
-app.command('custom', ({ reply }) => {
+app.command('menu', ({ reply }) => {
     return reply('Select an option', Markup
         .keyboard([
             ['🔍 Search', '😎 Popular'],
-            ['☸ Setting', '📞 Feedback'],
+            ['☸ Settings', '📞 Feedback'],
         ])
         .oneTime()
         .resize()
@@ -130,17 +136,14 @@ app.hears('🔍 Search', enter('search'));
 // #endregion
 
 
-
-
-//TODO: allow this to show all results through pagination
+// TODO: allow this to show all results through pagination
 function popularSearchHandler(teleCtx, typeArg) {
     if (typeArg == 'daily') {
         return wrapper.getE621PopularByDayIndex()
-            // returns a single page
-            .then((response) => {
+            .then((response) => {                                   // returns a single page
                 return pushFileUrlToArray(response)
                     .then((pageContents) => {
-                        return teleCtx.reply(`Here the first 25 results: ${pageContents.slice(0, 24).join('\n')}`);
+                        return teleCtx.reply(`Top 25 most popular posts today: ${pageContents.slice(0, 24).join('\n')}`);
                     })
             })
             .catch((err) => {
@@ -181,7 +184,6 @@ function searchHandler(teleCtx, tagsArg) {
                                 pageContents.push(post.file_url);
                             });
                         });
-                        // avoid the 'message too long' issue
                         if (pageContents.length < limitSetting) {
                             teleCtx.reply(`Here are your links: ${pageContents.join('\n')}`);
                         }
@@ -194,7 +196,6 @@ function searchHandler(teleCtx, tagsArg) {
                     return teleCtx.reply(`I couldn't find anything, make sure your tags are correct!`);
                 })
                 .catch((err) => {
-                    // return a message that something went wrong to the user
                     teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact ${CONFIG.devContactName}`);
                     return errHandler(err);
                 })
