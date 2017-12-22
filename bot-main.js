@@ -54,25 +54,26 @@ Notes:
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
 
-const { enter, leave } = Stage
+const { enter, leave } = Stage;
 
-// Echo scene
-const echoScene = new Scene('echo')
-echoScene.enter((ctx) => ctx.reply('echo scene'))
-echoScene.leave((ctx) => ctx.reply('exiting echo scene'))
-echoScene.command('back', leave())
-echoScene.on('text', (ctx) => ctx.reply(ctx.message.text))
-echoScene.on('message', (ctx) => ctx.reply('Only text messages please'))
-
+// Search scene
+const searchScene = new Scene('search');
+searchScene.enter((ctx) => {
+    // record the caller's ID
+    ctx.reply('search scene')
+});
+searchScene.leave((ctx) => ctx.reply('exiting search scene'));
+searchScene.command('back', leave());
+searchScene.on('text', (ctx) => {
+    searchHandler(ctx, ctx.message.text.trim())
+});
 
 
 app.startPolling();                                                 // start the bot and keep listening for events
 app.use(session());
-const stage = new Stage([echoScene], { ttl: 10 })
+const stage = new Stage([searchScene], { ttl: 30 });
 
-app.use(stage.middleware())
-
-
+app.use(stage.middleware());
 
 
 // #region appCommands
@@ -132,10 +133,7 @@ app.command('custom', ({ reply }) => {
     )
 });
 
-app.hears('🔍 Search', ctx => {
-    ctx.reply('Yay!')
-})
-app.hears('📞 Feedback', enter('echo'));
+app.hears('🔍 Search', enter('search'));
 // #endregion
 
 
