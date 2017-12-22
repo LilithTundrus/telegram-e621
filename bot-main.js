@@ -83,8 +83,6 @@ popularScene.command('weekly', (ctx) => popularSearchHandler(ctx, 'weekly'));
 popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
 
 
-
-
 const stage = new Stage([searchScene, popularScene], { ttl: 30 });
 app.startPolling();                                                 // start the bot and keep listening for events
 app.use(session());
@@ -149,9 +147,7 @@ app.command('menu', ({ reply }) => {
 
 app.hears('🔍 Search', enter('search'));
 app.hears('😎 Popular', enter('popular'));
-
 // #endregion
-
 
 function popularSearchHandler(teleCtx, typeArg) {
     return wrapper.popularURLHanlder(typeArg)
@@ -248,5 +244,3 @@ function errHandler(err) {
     logger.error(err);
     return app.telegram.sendMessage(CONFIG.TELEGRAM_ADMIN_ID, err.toString());
 }
-
-
