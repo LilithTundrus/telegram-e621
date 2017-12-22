@@ -42,7 +42,8 @@ Notes:
 //TODO: allow a user to set a blacklist
 //TODO: set up a better keyboard thing (scenes)
 //TODO: allow user logins
-//TODO setup a state machine for each user
+//TODO: setup a state machine for each user
+//TODO: fix the scenes not working when @ is used in groups 
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
