@@ -156,7 +156,7 @@ function popularSearchHandler(teleCtx, typeArg) {
     if (typeArg == 'daily') {
         return wrapper.getE621PopularByDayIndex()
             .then((response) => {                                   // returns a single page
-                return pushFileUrlToArray(response)
+                return wrapper.pushFileUrlToArray(response)
                     .then((pageContents) => {
                         return teleCtx.reply(`Top 25 most popular posts today: ${pageContents.slice(0, 24).join('\n')}`);
                     })
@@ -253,18 +253,4 @@ function errHandler(err) {
     return app.telegram.sendMessage(CONFIG.TELEGRAM_ADMIN_ID, err.toString());
 }
 
-/**
- * Iterate through a JSON e621Page and push each file_url to an array
- * @param {JSON} e621Page 
- * @returns {Promise}
- */
-function pushFileUrlToArray(e621Page) {
-    var pageContents = [];
-    return new Promise((resolve, reject) => {
-        e621Page.forEach((post, index) => {
-            pageContents.push(post.file_url);
-        });
-        return resolve(pageContents);
-    });
-}
 
