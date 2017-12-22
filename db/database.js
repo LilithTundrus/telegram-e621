@@ -64,7 +64,7 @@ function getTelegramUserLimit(teleid) {
         var sql = `SELECT * FROM userdata WHERE teleid = '${teleid}'`;
         con.query(sql, function (err, result) {
             if (err) throw err;
-            logger.debug(JSON.stringify(result, null, 2));
+            logger.debug(result[0].teleid);
             if (result.length < 1) {
                 return reject(`No user was found with the ID ${teleid}`);
             }
