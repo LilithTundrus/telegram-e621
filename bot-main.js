@@ -51,6 +51,8 @@ db.connect();
 
 // Search scene
 const searchScene = new Scene('search');
+const paginateScene = new Scene('paginate');
+
 var searchFromID;
 searchScene.enter((ctx) => {
     // record the caller's ID
@@ -64,8 +66,7 @@ searchScene.on('text', (ctx) => {
     if (ctx.from.id == searchFromID) {
         // clear the var
         searchFromID == '';
-        return searchHandler(ctx, ctx.message.text.trim());
-        // enter the searchPaginate scene
+        return searchHandler( ctx, ctx.message.text.trim());
     }
 });
 
@@ -84,7 +85,7 @@ popularScene.command('daily', (ctx) => popularSearchHandler(ctx, 'daily'));
 popularScene.command('weekly', (ctx) => popularSearchHandler(ctx, 'weekly'));
 popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
 
-const stage = new Stage([searchScene, popularScene], { ttl: 30 });
+const stage = new Stage([searchScene, popularScene, paginateScene], { ttl: 30 });
 app.startPolling();                                                 // start the bot and keep listening for events
 app.use(session());
 app.use(stage.middleware());
@@ -206,48 +207,6 @@ function searchHandler(teleCtx, tagsArg) {
         })
 }
 
-function searchHandlerAlt(teleCtx, tagsArg) {
-    //simply GET the set of images and return them as an array to be pages through
-    let limitSetting = CONFIG.e621DefualtLinkLimit;
-    return db.getTelegramUserLimit(teleCtx.message.from.id)
-        .then((userData) => {
-            return limitSetting = userData[0].setlimit;
-        })
-        .catch((err) => {
-            // there is no user with this ID, use defaults
-            return logger.debug(err);
-        })
-        .then(() => {
-            return wrapper.getE621PostIndexPaginate(tagsArg, 1, limitSetting, CONFIG.e621DefaultPageLimit)
-                .then((response) => {
-                    if (response.length > 0) {
-                        var resultCount = 0;
-                        var pageContents = [];
-                        response.forEach((page, index) => {
-                            resultCount = resultCount + page.length;
-                            page.forEach((post, postIndex) => {
-                                pageContents.push(post);
-                            });
-                        });
-                        //return the first result. on a NEXT command send the next item as an edit
-                        if (pageContents.length < limitSetting) {
-                            teleCtx.reply(`Here are your links: ${pageContents.join('\n')}`);
-                        }
-                        teleCtx.reply(`Here are the first ${limitSetting} results: ${pageContents.slice(0, limitSetting).join('\n')}`);
-                        if (limitSetting == CONFIG.e621DefualtLinkLimit) {
-                            return teleCtx.reply(`Looks like I got more than ${limitSetting} results! (${pageContents.length}) use the /limit command to change this number to be higher or lower. Pages are currently only allowed up to 3`);
-                        }
-                        return;
-                    }
-                    return teleCtx.reply(`I couldn't find anything, make sure your tags are correct!`);
-                })
-                .catch((err) => {
-                    teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact ${CONFIG.devContactName}`);
-                    return errHandler(err);
-                })
-        })
-}
-
 function limitSetHandler(teleCtx) {
     let limitVal = teleCtx.message.text.substring(6).trim();
     // validate number is correct
@@ -281,6 +240,6 @@ function errHandler(err) {
     return app.telegram.sendMessage(CONFIG.TELEGRAM_ADMIN_ID, err.toString());
 }
 
-function pageThroughPostArray(array, index) {
-    return array[index];
+function pageThroughPostArray(teleCtx, array, index) {
+    return ctx.reply(array[index].file_url);
 }
