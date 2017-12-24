@@ -148,19 +148,24 @@ app.command('menu', ({ reply }) => {
 });
 
 app.command('onetime', (ctx) => {
-    return ctx.reply('<b>IMAGE</b>', Extra.HTML().markup((m) =>
-        m.inlineKeyboard([
-            m.callbackButton('Next', 'Next'),
-            m.callbackButton('Previous', 'Previous')
-        ])))
+    getE621PageContents().then((response) => {
+        logger.debug(response.length)
+        return ctx.reply('<b>IMAGE</b>', Extra.HTML().markup((m) =>
+            m.inlineKeyboard([
+                m.callbackButton('Next', 'Next'),
+                m.callbackButton('Previous', 'Previous')
+            ])))
+    })
+
 })
 
 app.hears('🔍 Search', enter('search'));
 app.hears('😎 Popular', enter('popular'));
 
 app.action(/.+/, (ctx) => {
+
     return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
-  })
+})
 // #endregion
 
 // #region adminCommands
@@ -231,6 +236,19 @@ function searchHandler(teleCtx, tagsArg) {
                     return errHandler(err);
                 })
         })
+}
+
+
+async function getE621PageContents(tagsArg) {
+    let pageContents = [];
+    let limitSetting = CONFIG.e621DefualtLinkLimit;
+    let response = await wrapper.getE621PostIndexPaginate(tagsArg, 1, limitSetting, CONFIG.e621DefaultPageLimit)
+    response.forEach((page, index) => {
+        page.forEach((post, postIndex) => {
+            pageContents.push(post.file_url);
+        });
+    });
+    return pageContents;
 }
 
 function limitSetHandler(teleCtx) {
