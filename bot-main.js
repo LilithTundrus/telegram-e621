@@ -6,6 +6,7 @@ const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Markup = require('telegraf/markup');
 const Scene = require('telegraf/scenes/base');
+const Extra = require('telegraf/extra');
 // Declare our config-based opts and other globals
 const CONFIG = require('./config/config.js');                       // Config file for the bot
 const Logger = require('./lib/loggerClass.js');                     // Our custom logging class
@@ -51,7 +52,6 @@ db.connect();
 
 // Search scene
 const searchScene = new Scene('search');
-const paginateScene = new Scene('paginate');
 
 var searchFromID;
 searchScene.enter((ctx) => {
@@ -66,6 +66,7 @@ searchScene.on('text', (ctx) => {
     if (ctx.from.id == searchFromID) {
         // clear the var
         searchFromID == '';
+        ctx.scene.leave()
         return searchHandler(ctx, ctx.message.text.trim());
     }
 });
@@ -88,12 +89,14 @@ popularScene.enter((ctx) => {
 popularScene.leave((ctx) => ctx.reply('exiting popular scene'));
 popularScene.command('back', leave());
 popularScene.command('daily', (ctx) => {
-    popularSearchHandler(ctx, 'daily');
+    popularSearchHandler(ctx, 'daily').then(() => {
+        ctx.scene.leave();
+    })
 });
 popularScene.command('weekly', (ctx) => popularSearchHandler(ctx, 'weekly'));
 popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
 
-const stage = new Stage([searchScene, popularScene, paginateScene], { ttl: 30 });
+const stage = new Stage([searchScene, popularScene], { ttl: 30 });
 app.startPolling();                                                 // start the bot and keep listening for events
 app.use(session());
 app.use(stage.middleware());
@@ -144,8 +147,20 @@ app.command('menu', ({ reply }) => {
     )
 });
 
+app.command('onetime', (ctx) => {
+    return ctx.reply('<b>IMAGE</b>', Extra.HTML().markup((m) =>
+        m.inlineKeyboard([
+            m.callbackButton('Next', 'Next'),
+            m.callbackButton('Previous', 'Previous')
+        ])))
+})
+
 app.hears('🔍 Search', enter('search'));
 app.hears('😎 Popular', enter('popular'));
+
+app.action(/.+/, (ctx) => {
+    return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
+  })
 // #endregion
 
 // #region adminCommands
@@ -188,7 +203,7 @@ function searchHandler(teleCtx, tagsArg) {
         .then(() => {
             return wrapper.getE621PostIndexPaginate(tagsArg, 1, limitSetting, CONFIG.e621DefaultPageLimit)
                 .then((response) => {
-                    if(!response) {
+                    if (!response) {
                         return teleCtx.reply(`I couldn't find anything, make sure your tags are correct!`);
                     }
                     if (response.length > 0) {
@@ -249,8 +264,4 @@ function limitSetHandler(teleCtx) {
 function errHandler(err) {
     logger.error(err);
     return app.telegram.sendMessage(CONFIG.TELEGRAM_ADMIN_ID, err.toString());
-}
-
-function pageThroughPostArray(teleCtx, array, index) {
-    return ctx.reply(array[index].file_url);
 }
