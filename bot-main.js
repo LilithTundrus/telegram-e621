@@ -46,13 +46,14 @@ Notes:
 //TODO: fix the scenes not working when @ is used in groups 
 //TODO: with the search scene, create another keyboard to allow for
 scrolling through the results of a search!!
+//TODO: figure out how to make scenes a function to share data??
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
 
-// Search scene
-const searchScene = new Scene('search');
 
+const searchScene = new Scene('search');
+// Search scene
 var searchFromID;
 searchScene.enter((ctx) => {
     // record the caller's ID
@@ -62,6 +63,16 @@ searchScene.enter((ctx) => {
 });
 searchScene.leave((ctx) => ctx.reply('exiting search scene'));
 searchScene.command('back', leave());
+searchScene.command('onetime', (ctx) => {
+    getE621PageContents().then((response) => {
+        logger.debug(response.length)
+        return ctx.reply(`${response[0].file_url}`, Extra.HTML().markup((m) =>
+            m.inlineKeyboard([
+                m.callbackButton('Next', 'Next'),
+                m.callbackButton('Previous', 'Previous')
+            ])))
+    })
+});
 searchScene.on('text', (ctx) => {
     if (ctx.from.id == searchFromID) {
         // clear the var
@@ -70,6 +81,43 @@ searchScene.on('text', (ctx) => {
         return searchHandler(ctx, ctx.message.text.trim());
     }
 });
+searchScene.action(/.+/, (ctx) => {
+    if (ctx.match[0] == 'Next') {
+
+        ctx.telegram.editMessageText(ctx.chat.id, ctx.chat.id, ctx.message, 'AAAAA')
+        return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`);
+    }
+    //return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
+    return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
+})
+/*
+searchScene.enter((ctx) => {
+    // record the caller's ID
+    searchFromID = ctx.from.id;
+    logger.debug(searchFromID);
+    ctx.reply(`Give me some tags to search by. use /back when you're done.`);
+});
+searchScene.leave((ctx) => ctx.reply('exiting search scene'));
+searchScene.command('back', leave());
+searchScene.command('onetime', (ctx) => {
+    getE621PageContents().then((response) => {
+        logger.debug(response.length)
+        return ctx.reply(`${response[0].file_url}`, Extra.HTML().markup((m) =>
+            m.inlineKeyboard([
+                m.callbackButton('Next', 'Next'),
+                m.callbackButton('Previous', 'Previous')
+            ])))
+    })
+});
+searchScene.on('text', (ctx) => {
+    if (ctx.from.id == searchFromID) {
+        // clear the var
+        searchFromID == '';
+        ctx.scene.leave()
+        return searchHandler(ctx, ctx.message.text.trim());
+    }
+});
+*/
 
 // Search scene TODO: ADD an ALLTIME listener/handler
 const popularScene = new Scene('popular');
@@ -147,25 +195,13 @@ app.command('menu', ({ reply }) => {
     )
 });
 
-app.command('onetime', (ctx) => {
-    getE621PageContents().then((response) => {
-        logger.debug(response.length)
-        return ctx.reply('<b>IMAGE</b>', Extra.HTML().markup((m) =>
-            m.inlineKeyboard([
-                m.callbackButton('Next', 'Next'),
-                m.callbackButton('Previous', 'Previous')
-            ])))
-    })
 
-})
 
 app.hears('🔍 Search', enter('search'));
 app.hears('😎 Popular', enter('popular'));
 
-app.action(/.+/, (ctx) => {
 
-    return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
-})
+
 // #endregion
 
 // #region adminCommands
@@ -245,7 +281,7 @@ async function getE621PageContents(tagsArg) {
     let response = await wrapper.getE621PostIndexPaginate(tagsArg, 1, limitSetting, CONFIG.e621DefaultPageLimit)
     response.forEach((page, index) => {
         page.forEach((post, postIndex) => {
-            pageContents.push(post.file_url);
+            pageContents.push(post);
         });
     });
     return pageContents;
