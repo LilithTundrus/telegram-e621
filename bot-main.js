@@ -47,6 +47,7 @@ Notes:
 //TODO: with the search scene, create another keyboard to allow for
 scrolling through the results of a search!!
 //TODO: figure out how to make scenes a function to share data??
+//TODO: allow a remote restart
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
@@ -55,6 +56,7 @@ db.connect();
 const searchScene = new Scene('search');
 // Search scene
 var searchFromID;
+var lastSentMessageID;
 searchScene.enter((ctx) => {
     // record the caller's ID
     searchFromID = ctx.from.id;
@@ -65,12 +67,14 @@ searchScene.leave((ctx) => ctx.reply('exiting search scene'));
 searchScene.command('back', leave());
 searchScene.command('onetime', (ctx) => {
     getE621PageContents().then((response) => {
-        logger.debug(response.length)
         return ctx.reply(`${response[0].file_url}`, Extra.HTML().markup((m) =>
             m.inlineKeyboard([
                 m.callbackButton('Next', 'Next'),
                 m.callbackButton('Previous', 'Previous')
-            ])))
+            ]))).then((test) => {
+                lastSentMessageID = test.message_id;
+                logger.debug(JSON.stringify(test.message_id));
+            })
     })
 });
 searchScene.on('text', (ctx) => {
@@ -83,8 +87,9 @@ searchScene.on('text', (ctx) => {
 });
 searchScene.action(/.+/, (ctx) => {
     if (ctx.match[0] == 'Next') {
-
-        ctx.telegram.editMessageText(ctx.chat.id, ctx.chat.id, ctx.message, 'AAAAA')
+        logger.debug(JSON.stringify(ctx.chat, null, 2))
+        logger.debug(lastSentMessageID)
+        ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null,  'AAAAA')
         return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`);
     }
     //return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
@@ -148,6 +153,14 @@ const stage = new Stage([searchScene, popularScene], { ttl: 30 });
 app.startPolling();                                                 // start the bot and keep listening for events
 app.use(session());
 app.use(stage.middleware());
+app.use((ctx, next) => {
+    const reply = ctx.reply;
+    ctx.reply = (...args) => {
+        ctx.session.lastMessage = args;
+        reply(...args);
+    };
+    return next();
+});
 
 // #region appCommands
 app.command('start', ({ from, reply }) => {
@@ -199,9 +212,6 @@ app.command('menu', ({ reply }) => {
 
 app.hears('🔍 Search', enter('search'));
 app.hears('😎 Popular', enter('popular'));
-
-
-
 // #endregion
 
 // #region adminCommands
@@ -273,7 +283,6 @@ function searchHandler(teleCtx, tagsArg) {
                 })
         })
 }
-
 
 async function getE621PageContents(tagsArg) {
     let pageContents = [];
