@@ -20,6 +20,8 @@ const { enter, leave } = Stage;
 /* Main entry point for the bot
 
 Feature intent:
+Start/stop the bot remotely
+Push updates to code seamlessly
 Be able to do basically anything you can on the e621 site
 Be able to submit issues
 Be able to have a custom profile for the bot
@@ -57,6 +59,8 @@ const searchScene = new Scene('search');
 // Search scene
 var searchFromID;
 var lastSentMessageID;
+let testArray = [];
+let currentIndex = 0;
 searchScene.enter((ctx) => {
     // record the caller's ID
     searchFromID = ctx.from.id;
@@ -67,6 +71,7 @@ searchScene.leave((ctx) => ctx.reply('exiting search scene'));
 searchScene.command('back', leave());
 searchScene.command('onetime', (ctx) => {
     getE621PageContents().then((response) => {
+        testArray = response;
         return ctx.reply(`${response[0].file_url}`, Extra.HTML().markup((m) =>
             m.inlineKeyboard([
                 m.callbackButton('Next', 'Next'),
@@ -89,8 +94,25 @@ searchScene.action(/.+/, (ctx) => {
     if (ctx.match[0] == 'Next') {
         logger.debug(JSON.stringify(ctx.chat, null, 2))
         logger.debug(lastSentMessageID)
-        ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null,  'AAAAA')
+        currentIndex++;
+        ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, testArray[currentIndex].file_url, Extra.HTML().markup((m) =>
+            m.inlineKeyboard([
+                m.callbackButton('Next', 'Next'),
+                m.callbackButton('Previous', 'Previous')
+            ])))
         return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`);
+    } else if (ctx.match[0] == 'Previous') {
+        if (currentIndex !== 0) {
+            logger.debug(JSON.stringify(ctx.chat, null, 2))
+            logger.debug(lastSentMessageID)
+            currentIndex--;
+            ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, testArray[currentIndex].file_url, Extra.HTML().markup((m) =>
+                m.inlineKeyboard([
+                    m.callbackButton('Next', 'Next'),
+                    m.callbackButton('Previous', 'Previous')
+                ])))
+            return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`);
+        }
     }
     //return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
     return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
@@ -167,26 +189,21 @@ app.command('start', ({ from, reply }) => {
     logger.info(`Start from ${JSON.stringify(from)}`);              // log when a new user starts the bot
     return reply('Henlo! ${WELCOME_MESSAGE_HERE}');
 });
-
 app.command('help', (ctx) => {                                      // send the help command info
     ctx.reply('PlaceHolder');
 });
-
 app.command('register', (ctx) => {
     ctx.reply('PlaceHolder');
 });
-
 app.command('profile', (ctx) => {                                   // get a user profile
     ctx.reply('PlaceHolder');
 });
-
 app.command('limit', (ctx) => {                                     // set a user's custom limit
     if (ctx.message.text.trim().length <= 6) {
         return ctx.reply('Please give a number between 1 and 50 as a limit');
     }
     return limitSetHandler(ctx);
 });
-
 // Note: this should eventually be removed
 app.command('search', (ctx) => {                                    // debugging
     if (ctx.message.text.length <= 7) {
@@ -195,7 +212,6 @@ app.command('search', (ctx) => {                                    // debugging
     }
     return searchHandler(ctx, ctx.message.text.trim().substring(7));
 });
-
 app.command('menu', ({ reply }) => {
     return reply('Select an option', Markup
         .keyboard([
@@ -207,8 +223,6 @@ app.command('menu', ({ reply }) => {
         .extra()
     )
 });
-
-
 
 app.hears('🔍 Search', enter('search'));
 app.hears('😎 Popular', enter('popular'));
@@ -284,6 +298,7 @@ function searchHandler(teleCtx, tagsArg) {
         })
 }
 
+// move this to the helper class!!
 async function getE621PageContents(tagsArg) {
     let pageContents = [];
     let limitSetting = CONFIG.e621DefualtLinkLimit;
