@@ -54,7 +54,6 @@ scrolling through the results of a search!!
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
 
-
 const searchScene = new Scene('search');
 // Search scene
 var searchFromID;
@@ -145,7 +144,6 @@ searchScene.on('text', (ctx) => {
     }
 });
 */
-
 // Search scene TODO: ADD an ALLTIME listener/handler
 const popularScene = new Scene('popular');
 var popFromID;
@@ -170,6 +168,7 @@ popularScene.command('daily', (ctx) => {
 });
 popularScene.command('weekly', (ctx) => popularSearchHandler(ctx, 'weekly'));
 popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
+popularScene.command('alltime', (ctx) => popularSearchHandler(ctx, 'alltime'));
 
 const stage = new Stage([searchScene, popularScene], { ttl: 30 });
 app.startPolling();                                                 // start the bot and keep listening for events
@@ -298,7 +297,8 @@ function searchHandler(teleCtx, tagsArg) {
         })
 }
 
-// move this to the helper class!!
+// TODO: move this to the helper class!!
+// TODO: validate whether or not there was a response
 async function getE621PageContents(tagsArg) {
     let pageContents = [];
     let limitSetting = CONFIG.e621DefualtLinkLimit;
