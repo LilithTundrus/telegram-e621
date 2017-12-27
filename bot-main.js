@@ -55,12 +55,15 @@ scrolling through the results of a search!!
 //TODO: when allowing users to set a blacklist, ensure that the tags are valid
 against a JSON DB table that contains all possible valid e621 tags
 //TODO: make everything a scene
+//TODO: create a 'picutre of the day' message thing to send daily
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
 
 const searchScene = new Scene('search');
+const popularScene = new Scene('popular');
 
+// TODO: reset all of the vars after an exit scene...this might get really messy
 function searchConstructor() {
     // Search scene
     var searchFromID;
@@ -76,16 +79,20 @@ function searchConstructor() {
     searchScene.leave((ctx) => ctx.reply('exiting search scene'));
     searchScene.command('back', leave());
     searchScene.command('onetime', (ctx) => {
-        getE621PageContents().then((response) => {
-            searchSceneArray = response;
-            return ctx.reply(`${response[0].file_url}`, Extra.HTML().markup((m) =>
-                m.inlineKeyboard([
-                    m.callbackButton('Next', 'Next'),
-                    m.callbackButton('Previous', 'Previous')
-                ]))).then((messageResult) => {
-                    lastSentMessageID = messageResult.message_id;
-                })
-        })
+        getE621PageContents()
+            .then((response) => {
+                searchSceneArray = response;
+                return ctx.reply(`${response[0].file_url}`, Extra.HTML().markup((m) =>
+                    m.inlineKeyboard([
+                        m.callbackButton('Next', 'Next'),
+                        m.callbackButton('Previous', 'Previous')
+                    ]))).then((messageResult) => {
+                        lastSentMessageID = messageResult.message_id;
+                    })
+            })
+            .catch((err) => {
+                return ctx.reply(`Looks like I ran into a problem. If the issue persists contact ${CONFIG.devContactName}`);
+            })
     });
     searchScene.on('text', (ctx) => {
         if (ctx.from.id == searchFromID) {
@@ -123,28 +130,8 @@ function searchConstructor() {
         return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
     })
 }
-/*
-searchScene.command('onetime', (ctx) => {
-    getE621PageContents().then((response) => {
-        logger.debug(response.length)
-        return ctx.reply(`${response[0].file_url}`, Extra.HTML().markup((m) =>
-            m.inlineKeyboard([
-                m.callbackButton('Next', 'Next'),
-                m.callbackButton('Previous', 'Previous')
-            ])))
-    })
-});
-searchScene.on('text', (ctx) => {
-    if (ctx.from.id == searchFromID) {
-        // clear the var
-        searchFromID == '';
-        ctx.scene.leave()
-        return searchHandler(ctx, ctx.message.text.trim());
-    }
-});
-*/
-// Search scene TODO: ADD an ALLTIME listener/handler
-const popularScene = new Scene('popular');
+
+// Popular scene
 var popFromID;
 popularScene.enter((ctx) => {
     // record the caller's ID
@@ -169,13 +156,15 @@ popularScene.command('weekly', (ctx) => popularSearchHandler(ctx, 'weekly'));
 popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
 popularScene.command('alltime', (ctx) => popularSearchHandler(ctx, 'alltime'));
 
-
 // Start up the app!
-const stage = new Stage([searchScene, popularScene], { ttl: 30 });
+//const stage = new Stage([searchScene, popularScene], { ttl: 30 });
+const stage = new Stage([searchScene, popularScene]);
+
 searchConstructor();
 app.startPolling();                                                 // start the bot and keep listening for events
 app.use(session());
 app.use(stage.middleware());
+// I literally don't know what this is doing but it lets us attach a .then to sending telegram messages
 app.use((ctx, next) => {
     const reply = ctx.reply;
     ctx.reply = (...args) => {
@@ -231,7 +220,7 @@ app.hears('😎 Popular', enter('popular'));
 
 // #region adminCommands
 app.command('ver', (ctx) => {                                       // get the version of the bot
-    if (ctx.message.from.id !== CONFIG.TELEGRAM_ADMIN_ID) {
+    if (ctx.message.from.id.toString() !== CONFIG.TELEGRAM_ADMIN_ID) {
         return ctx.reply(`Insufficient privilages`);
     }
     return ctx.reply(VER);
