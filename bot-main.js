@@ -50,6 +50,10 @@ Notes:
 scrolling through the results of a search!!
 //TODO: figure out how to make scenes a function to share data??
 //TODO: allow a remote restart
+//TODO: if something is a video, still attempt to get a thumbnail??
+//TODO: error handle the e621 helper like MAD..it feels kind of brittle
+//TODO: when allowing users to set a blacklist, ensure that the tags are valid
+against a JSON DB table that contains all possible valid e621 tags
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
@@ -58,7 +62,7 @@ const searchScene = new Scene('search');
 // Search scene
 var searchFromID;
 var lastSentMessageID;
-let testArray = [];
+let searchSceneArray = [];
 let currentIndex = 0;
 searchScene.enter((ctx) => {
     // record the caller's ID
@@ -70,14 +74,13 @@ searchScene.leave((ctx) => ctx.reply('exiting search scene'));
 searchScene.command('back', leave());
 searchScene.command('onetime', (ctx) => {
     getE621PageContents().then((response) => {
-        testArray = response;
+        searchSceneArray = response;
         return ctx.reply(`${response[0].file_url}`, Extra.HTML().markup((m) =>
             m.inlineKeyboard([
                 m.callbackButton('Next', 'Next'),
                 m.callbackButton('Previous', 'Previous')
-            ]))).then((test) => {
-                lastSentMessageID = test.message_id;
-                logger.debug(JSON.stringify(test.message_id));
+            ]))).then((messageResult) => {
+                lastSentMessageID = messageResult.message_id;
             })
     })
 });
@@ -94,7 +97,7 @@ searchScene.action(/.+/, (ctx) => {
         logger.debug(JSON.stringify(ctx.chat, null, 2))
         logger.debug(lastSentMessageID)
         currentIndex++;
-        ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, testArray[currentIndex].file_url, Extra.HTML().markup((m) =>
+        ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, searchSceneArray[currentIndex].file_url, Extra.HTML().markup((m) =>
             m.inlineKeyboard([
                 m.callbackButton('Next', 'Next'),
                 m.callbackButton('Previous', 'Previous')
@@ -105,7 +108,7 @@ searchScene.action(/.+/, (ctx) => {
             logger.debug(JSON.stringify(ctx.chat, null, 2))
             logger.debug(lastSentMessageID)
             currentIndex--;
-            ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, testArray[currentIndex].file_url, Extra.HTML().markup((m) =>
+            ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, searchSceneArray[currentIndex].file_url, Extra.HTML().markup((m) =>
                 m.inlineKeyboard([
                     m.callbackButton('Next', 'Next'),
                     m.callbackButton('Previous', 'Previous')
@@ -117,14 +120,6 @@ searchScene.action(/.+/, (ctx) => {
     return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
 })
 /*
-searchScene.enter((ctx) => {
-    // record the caller's ID
-    searchFromID = ctx.from.id;
-    logger.debug(searchFromID);
-    ctx.reply(`Give me some tags to search by. use /back when you're done.`);
-});
-searchScene.leave((ctx) => ctx.reply('exiting search scene'));
-searchScene.command('back', leave());
 searchScene.command('onetime', (ctx) => {
     getE621PageContents().then((response) => {
         logger.debug(response.length)
@@ -230,6 +225,7 @@ app.hears('😎 Popular', enter('popular'));
 // #region adminCommands
 //TODO: validate those who call this are admins
 app.command('ver', (ctx) => {                                       // get the version of the bot
+    logger.debug(ctx.message.from)
     ctx.reply(VER);
 });
 // #endregion
@@ -297,12 +293,11 @@ function searchHandler(teleCtx, tagsArg) {
         })
 }
 
-// TODO: move this to the helper class!!
 // TODO: validate whether or not there was a response
 async function getE621PageContents(tagsArg) {
     let pageContents = [];
     let limitSetting = CONFIG.e621DefualtLinkLimit;
-    let response = await wrapper.getE621PostIndexPaginate(tagsArg, 1, limitSetting, CONFIG.e621DefaultPageLimit)
+    let response = await wrapper.getE621PostIndexPaginate(tagsArg, 1, limitSetting, CONFIG.e621DefaultPageLimit);
     response.forEach((page, index) => {
         page.forEach((post, postIndex) => {
             pageContents.push(post);
