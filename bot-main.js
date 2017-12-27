@@ -54,71 +54,75 @@ scrolling through the results of a search!!
 //TODO: error handle the e621 helper like MAD..it feels kind of brittle
 //TODO: when allowing users to set a blacklist, ensure that the tags are valid
 against a JSON DB table that contains all possible valid e621 tags
+//TODO: make everything a scene
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
 
 const searchScene = new Scene('search');
-// Search scene
-var searchFromID;
-var lastSentMessageID;
-let searchSceneArray = [];
-let currentIndex = 0;
-searchScene.enter((ctx) => {
-    // record the caller's ID
-    searchFromID = ctx.from.id;
-    logger.debug(searchFromID);
-    ctx.reply(`Give me some tags to search by. use /back when you're done.`);
-});
-searchScene.leave((ctx) => ctx.reply('exiting search scene'));
-searchScene.command('back', leave());
-searchScene.command('onetime', (ctx) => {
-    getE621PageContents().then((response) => {
-        searchSceneArray = response;
-        return ctx.reply(`${response[0].file_url}`, Extra.HTML().markup((m) =>
-            m.inlineKeyboard([
-                m.callbackButton('Next', 'Next'),
-                m.callbackButton('Previous', 'Previous')
-            ]))).then((messageResult) => {
-                lastSentMessageID = messageResult.message_id;
-            })
-    })
-});
-searchScene.on('text', (ctx) => {
-    if (ctx.from.id == searchFromID) {
-        // clear the var
-        searchFromID == '';
-        ctx.scene.leave()
-        return searchHandler(ctx, ctx.message.text.trim());
-    }
-});
-searchScene.action(/.+/, (ctx) => {
-    if (ctx.match[0] == 'Next') {
-        logger.debug(JSON.stringify(ctx.chat, null, 2))
-        logger.debug(lastSentMessageID)
-        currentIndex++;
-        ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, searchSceneArray[currentIndex].file_url, Extra.HTML().markup((m) =>
-            m.inlineKeyboard([
-                m.callbackButton('Next', 'Next'),
-                m.callbackButton('Previous', 'Previous')
-            ])))
-        return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`);
-    } else if (ctx.match[0] == 'Previous') {
-        if (currentIndex !== 0) {
+
+function searchConstructor() {
+    // Search scene
+    var searchFromID;
+    var lastSentMessageID;
+    let searchSceneArray = [];
+    let currentIndex = 0;
+    searchScene.enter((ctx) => {
+        // record the caller's ID
+        searchFromID = ctx.from.id;
+        logger.debug(searchFromID);
+        ctx.reply(`Give me some tags to search by. use /back when you're done.`);
+    });
+    searchScene.leave((ctx) => ctx.reply('exiting search scene'));
+    searchScene.command('back', leave());
+    searchScene.command('onetime', (ctx) => {
+        getE621PageContents().then((response) => {
+            searchSceneArray = response;
+            return ctx.reply(`${response[0].file_url}`, Extra.HTML().markup((m) =>
+                m.inlineKeyboard([
+                    m.callbackButton('Next', 'Next'),
+                    m.callbackButton('Previous', 'Previous')
+                ]))).then((messageResult) => {
+                    lastSentMessageID = messageResult.message_id;
+                })
+        })
+    });
+    searchScene.on('text', (ctx) => {
+        if (ctx.from.id == searchFromID) {
+            // clear the var
+            searchFromID == '';
+            ctx.scene.leave()
+            return searchHandler(ctx, ctx.message.text.trim());
+        }
+    });
+    searchScene.action(/.+/, (ctx) => {
+        if (ctx.match[0] == 'Next') {
             logger.debug(JSON.stringify(ctx.chat, null, 2))
             logger.debug(lastSentMessageID)
-            currentIndex--;
+            currentIndex++;
             ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, searchSceneArray[currentIndex].file_url, Extra.HTML().markup((m) =>
                 m.inlineKeyboard([
                     m.callbackButton('Next', 'Next'),
                     m.callbackButton('Previous', 'Previous')
                 ])))
             return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`);
+        } else if (ctx.match[0] == 'Previous') {
+            if (currentIndex !== 0) {
+                logger.debug(JSON.stringify(ctx.chat, null, 2))
+                logger.debug(lastSentMessageID)
+                currentIndex--;
+                ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, searchSceneArray[currentIndex].file_url, Extra.HTML().markup((m) =>
+                    m.inlineKeyboard([
+                        m.callbackButton('Next', 'Next'),
+                        m.callbackButton('Previous', 'Previous')
+                    ])))
+                return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`);
+            }
         }
-    }
-    //return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
-    return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
-})
+        //return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
+        return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
+    })
+}
 /*
 searchScene.command('onetime', (ctx) => {
     getE621PageContents().then((response) => {
@@ -165,7 +169,10 @@ popularScene.command('weekly', (ctx) => popularSearchHandler(ctx, 'weekly'));
 popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
 popularScene.command('alltime', (ctx) => popularSearchHandler(ctx, 'alltime'));
 
+
+// Start up the app!
 const stage = new Stage([searchScene, popularScene], { ttl: 30 });
+searchConstructor();
 app.startPolling();                                                 // start the bot and keep listening for events
 app.use(session());
 app.use(stage.middleware());
@@ -223,10 +230,11 @@ app.hears('😎 Popular', enter('popular'));
 // #endregion
 
 // #region adminCommands
-//TODO: validate those who call this are admins
 app.command('ver', (ctx) => {                                       // get the version of the bot
-    logger.debug(ctx.message.from)
-    ctx.reply(VER);
+    if (ctx.message.from.id !== CONFIG.TELEGRAM_ADMIN_ID) {
+        return ctx.reply(`Insufficient privilages`);
+    }
+    return ctx.reply(VER);
 });
 // #endregion
 
