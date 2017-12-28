@@ -78,30 +78,30 @@ function searchConstructor() {
     });
     searchScene.leave((ctx) => ctx.reply('exiting search scene'));
     searchScene.command('back', leave());
-    searchScene.command('onetime', (ctx) => {
-        getE621PageContents()
-            .then((response) => {
-                searchSceneArray = response;
-                return ctx.reply(`${response[0].file_url}`, Extra.HTML().markup((m) =>
-                    m.inlineKeyboard([
-                        m.callbackButton('Next', 'Next'),
-                        m.callbackButton('Previous', 'Previous')
-                    ]))).then((messageResult) => {
-                        lastSentMessageID = messageResult.message_id;
-                    })
-            })
-            .catch((err) => {
-                return ctx.reply(`Looks like I ran into a problem. If the issue persists contact ${CONFIG.devContactName}`);
-            })
-    });
     searchScene.on('text', (ctx) => {
         if (ctx.from.id == searchFromID) {
             // clear the var
             searchFromID == '';
-            ctx.scene.leave()
-            return searchHandler(ctx, ctx.message.text.trim());
+            getE621PageContents(ctx.message.text)
+                .then((response) => {
+                    searchSceneArray = response;
+                    return ctx.reply(`${response[0].file_url}`, Extra.HTML().markup((m) =>
+                        m.inlineKeyboard([
+                            m.callbackButton('Next', 'Next'),
+                            m.callbackButton('Previous', 'Previous')
+                        ]))).then((messageResult) => {
+                            lastSentMessageID = messageResult.message_id;
+                        })
+                })
+                .catch((err) => {
+                    return ctx.reply(`Looks like I ran into a problem. If the issue persists contact ${CONFIG.devContactName}`);
+                })
         }
     });
+    searchScene.hears('🔍 Search', (ctx) => {
+        ctx.scene.leave();
+        enter('search');
+    })
     searchScene.action(/.+/, (ctx) => {
         if (ctx.match[0] == 'Next') {
             currentIndex++;
@@ -150,7 +150,6 @@ function popularConstructor() {
     popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
     popularScene.command('alltime', (ctx) => popularSearchHandler(ctx, 'alltime'));
 }
-
 
 // Start up the app!
 //const stage = new Stage([searchScene, popularScene], { ttl: 30 });
