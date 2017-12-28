@@ -104,63 +104,60 @@ function searchConstructor() {
     });
     searchScene.action(/.+/, (ctx) => {
         if (ctx.match[0] == 'Next') {
-            logger.debug(JSON.stringify(ctx.chat, null, 2))
-            logger.debug(lastSentMessageID)
             currentIndex++;
             ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, searchSceneArray[currentIndex].file_url, Extra.HTML().markup((m) =>
                 m.inlineKeyboard([
                     m.callbackButton('Next', 'Next'),
                     m.callbackButton('Previous', 'Previous')
                 ])))
-            return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`);
         } else if (ctx.match[0] == 'Previous') {
             if (currentIndex !== 0) {
-                logger.debug(JSON.stringify(ctx.chat, null, 2))
-                logger.debug(lastSentMessageID)
                 currentIndex--;
                 ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, searchSceneArray[currentIndex].file_url, Extra.HTML().markup((m) =>
                     m.inlineKeyboard([
                         m.callbackButton('Next', 'Next'),
                         m.callbackButton('Previous', 'Previous')
-                    ])))
-                return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`);
+                    ])));
             }
         }
-        //return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
-        return ctx.reply(`AAAAAAA, ${ctx.match[0]}! AAA`)
     })
 }
 
-// Popular scene
-var popFromID;
-popularScene.enter((ctx) => {
-    // record the caller's ID
-    popFromID = ctx.from.id;
-    logger.debug(popFromID);
-    return ctx.reply(`Available options: /daily, /weekly /monthly /alltime`), Markup
-        .keyboard([
-            ['Daily', 'Weekly'],
-            ['Monthly', 'All Time'],
-        ])
-        .oneTime()
-        .resize()
-});
-popularScene.leave((ctx) => ctx.reply('exiting popular scene'));
-popularScene.command('back', leave());
-popularScene.command('daily', (ctx) => {
-    popularSearchHandler(ctx, 'daily').then(() => {
-        ctx.scene.leave();
-    })
-});
-popularScene.command('weekly', (ctx) => popularSearchHandler(ctx, 'weekly'));
-popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
-popularScene.command('alltime', (ctx) => popularSearchHandler(ctx, 'alltime'));
+function popularConstructor() {
+    // Popular scene
+    var popFromID;
+    popularScene.enter((ctx) => {
+        // record the caller's ID
+        popFromID = ctx.from.id;
+        logger.debug(popFromID);
+        return ctx.reply(`Available options: /daily, /weekly /monthly /alltime`), Markup
+            .keyboard([
+                ['Daily', 'Weekly'],
+                ['Monthly', 'All Time'],
+            ])
+            .oneTime()
+            .resize()
+    });
+    popularScene.leave((ctx) => ctx.reply('exiting popular scene'));
+    popularScene.command('back', leave());
+    popularScene.command('daily', (ctx) => {
+        popularSearchHandler(ctx, 'daily').then(() => {
+            //testing scene leaving on command
+            ctx.scene.leave();
+        })
+    });
+    popularScene.command('weekly', (ctx) => popularSearchHandler(ctx, 'weekly'));
+    popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
+    popularScene.command('alltime', (ctx) => popularSearchHandler(ctx, 'alltime'));
+}
+
 
 // Start up the app!
 //const stage = new Stage([searchScene, popularScene], { ttl: 30 });
 const stage = new Stage([searchScene, popularScene]);
 
 searchConstructor();
+popularConstructor();
 app.startPolling();                                                 // start the bot and keep listening for events
 app.use(session());
 app.use(stage.middleware());
