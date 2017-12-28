@@ -78,6 +78,11 @@ function searchConstructor() {
     });
     searchScene.leave((ctx) => ctx.reply('exiting search scene'));
     searchScene.command('back', leave());
+    searchScene.hears('🔍 Search', (ctx) => {
+        ctx.scene.leave().then(() => {
+            return ctx.scene.enter('search');
+        });
+    });
     searchScene.on('text', (ctx) => {
         if (ctx.from.id == searchFromID) {
             // clear the var
@@ -98,10 +103,6 @@ function searchConstructor() {
                 })
         }
     });
-    searchScene.hears('🔍 Search', (ctx) => {
-        ctx.scene.leave();
-        enter('search');
-    })
     searchScene.action(/.+/, (ctx) => {
         if (ctx.match[0] == 'Next') {
             currentIndex++;
