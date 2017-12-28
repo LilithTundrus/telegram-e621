@@ -27,7 +27,6 @@ Be able to submit issues
 Be able to have a custom profile for the bot
 Have really good logging and user-based request monitoring
 Be able to make announcements to all users
-GET a 'popular by day/week/month' thing working
 
 Notes:
 - Telegraf sometimes doesn't like it when you try to return functions for replies
@@ -63,6 +62,12 @@ db.connect();
 const searchScene = new Scene('search');
 const popularScene = new Scene('popular');
 
+
+const pagingKeyboard = Extra.HTML().markup((m) =>
+    m.inlineKeyboard([
+        m.callbackButton('Next', 'Next'),
+        m.callbackButton('Previous', 'Previous')
+    ]));
 // TODO: reset all of the vars after an exit scene...this might get really messy
 function searchConstructor() {
     // Search scene
@@ -74,13 +79,23 @@ function searchConstructor() {
         // record the caller's ID
         searchFromID = ctx.from.id;
         logger.debug(searchFromID);
-        ctx.reply(`Give me some tags to search by. use /back when you're done.`);
+        ctx.reply(`Give me some tags to search by. Use /back when you're done.`);
     });
-    searchScene.leave((ctx) => ctx.reply('exiting search scene'));
+    searchScene.leave((ctx) => {
+        // reset all the vars used here
+
+        // debugging
+        ctx.reply('exiting search scene');
+    });
     searchScene.command('back', leave());
     searchScene.hears('🔍 Search', (ctx) => {
         ctx.scene.leave().then(() => {
             return ctx.scene.enter('search');
+        });
+    });
+    searchScene.hears('😎 Popular', (ctx) => {
+        ctx.scene.leave().then(() => {
+            return ctx.scene.enter('popular');
         });
     });
     searchScene.on('text', (ctx) => {
@@ -90,11 +105,8 @@ function searchConstructor() {
             getE621PageContents(ctx.message.text)
                 .then((response) => {
                     searchSceneArray = response;
-                    return ctx.reply(`${response[0].file_url}`, Extra.HTML().markup((m) =>
-                        m.inlineKeyboard([
-                            m.callbackButton('Next', 'Next'),
-                            m.callbackButton('Previous', 'Previous')
-                        ]))).then((messageResult) => {
+                    return ctx.reply(`${response[0].file_url}`, pagingKeyboard)
+                        .then((messageResult) => {
                             lastSentMessageID = messageResult.message_id;
                         })
                 })
@@ -106,19 +118,11 @@ function searchConstructor() {
     searchScene.action(/.+/, (ctx) => {
         if (ctx.match[0] == 'Next') {
             currentIndex++;
-            ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, searchSceneArray[currentIndex].file_url, Extra.HTML().markup((m) =>
-                m.inlineKeyboard([
-                    m.callbackButton('Next', 'Next'),
-                    m.callbackButton('Previous', 'Previous')
-                ])))
+            ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, searchSceneArray[currentIndex].file_url, pagingKeyboard)
         } else if (ctx.match[0] == 'Previous') {
             if (currentIndex !== 0) {
                 currentIndex--;
-                ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, searchSceneArray[currentIndex].file_url, Extra.HTML().markup((m) =>
-                    m.inlineKeyboard([
-                        m.callbackButton('Next', 'Next'),
-                        m.callbackButton('Previous', 'Previous')
-                    ])));
+                ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, searchSceneArray[currentIndex].file_url, pagingKeyboard);
             }
         }
     })
@@ -152,13 +156,11 @@ function popularConstructor() {
     popularScene.command('alltime', (ctx) => popularSearchHandler(ctx, 'alltime'));
 }
 
-// Start up the app!
 //const stage = new Stage([searchScene, popularScene], { ttl: 30 });
 const stage = new Stage([searchScene, popularScene]);
-
 searchConstructor();
 popularConstructor();
-app.startPolling();                                                 // start the bot and keep listening for events
+app.startPolling();                                                 // Start the bot and keep listening for events
 app.use(session());
 app.use(stage.middleware());
 // I literally don't know what this is doing but it lets us attach a .then to sending telegram messages
@@ -287,7 +289,7 @@ function searchHandler(teleCtx, tagsArg) {
         })
 }
 
-// TODO: validate whether or not there was a response
+// TODO: make this act like searchandler()
 async function getE621PageContents(tagsArg) {
     let pageContents = [];
     let limitSetting = CONFIG.e621DefualtLinkLimit;
@@ -326,7 +328,7 @@ function limitSetHandler(teleCtx) {
 
 /**
  * Main error handler for the bot for debugging
- * @param {Error} err 
+ * @param {Error} err
  */
 function errHandler(err) {
     logger.error(err);
