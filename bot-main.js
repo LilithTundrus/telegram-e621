@@ -69,6 +69,7 @@ const pagingKeyboard = Extra.HTML().markup((m) =>
     ]));
 
 // TODO: reset all of the vars after an exit scene...this might get really messy
+// TODO: on ENTER return a new searcHandler class...this is becoming a mess
 function searchConstructor() {
     // Search scene
     var searchFromID;
@@ -102,17 +103,30 @@ function searchConstructor() {
         if (ctx.from.id == searchFromID) {
             // clear the var
             searchFromID == '';
-            getE621PageContents(ctx.message.text)
-                .then((response) => {
-                    searchSceneArray = response;
-                    return ctx.reply(`${response[0].file_url}`, pagingKeyboard)
-                        .then((messageResult) => {
-                            lastSentMessageID = messageResult.message_id;
-                        })
+            // get the user in the DB
+            let limitSetting = CONFIG.e621DefaultPageSize;
+            return getTelegramUserLimit(ctx.message.from.id)
+                .then((userData) => {
+                    return limitSetting = userData[0].setlimit;
                 })
                 .catch((err) => {
-                    return ctx.reply(`Looks like I ran into a problem. If the issue persists contact ${CONFIG.devContactName}`);
+                    // there is no user with this ID, use defaults
+                    return logger.debug(err);
                 })
+                .then(() => {
+                    return getE621PageContents(ctx.message.text, limitSetting)
+                        .then((response) => {
+                            searchSceneArray = response;
+                            return ctx.reply(`${response[0].file_url}`, pagingKeyboard)
+                                .then((messageResult) => {
+                                    lastSentMessageID = messageResult.message_id;
+                                })
+                        })
+                        .catch((err) => {
+                            return ctx.reply(`Looks like I ran into a problem. If the issue persists contact ${CONFIG.devContactName}`);
+                        })
+                })
+
         }
     });
     searchScene.action(/.+/, (ctx) => {
@@ -232,66 +246,20 @@ function popularSearchHandler(teleCtx, typeArg) {
         })
 }
 
-/**
- * Send the results of an image search through the E621 API
- * @param {JSON} teleCtx 
- * @param {String | String[]} tagsArg 
- * @returns {<telegraf.reply>}
- */
-function searchHandler(teleCtx, tagsArg) {
-    let limitSetting = CONFIG.e621DefualtLinkLimit;
-    return db.getTelegramUserLimit(teleCtx.message.from.id)
-        .then((userData) => {
-            return limitSetting = userData[0].setlimit;
-        })
-        .catch((err) => {
-            // there is no user with this ID, use defaults
-            return logger.debug(err);
-        })
-        .then(() => {
-            return wrapper.getE621PostIndexPaginate(tagsArg, 1, limitSetting, CONFIG.e621DefaultPageLimit)
-                .then((response) => {
-                    if (!response) {
-                        return teleCtx.reply(`I couldn't find anything, make sure your tags are correct!`);
-                    }
-                    if (response.length > 0) {
-                        var resultCount = 0;
-                        var pageContents = [];
-                        response.forEach((page, index) => {
-                            resultCount = resultCount + page.length;
-                            page.forEach((post, postIndex) => {
-                                pageContents.push(post.file_url);
-                            });
-                        });
-                        if (pageContents.length < limitSetting) {
-                            teleCtx.reply(`Here are your links: ${pageContents.join('\n')}`);
-                        }
-                        teleCtx.reply(`Here are the first ${limitSetting} results: ${pageContents.slice(0, limitSetting).join('\n')}`);
-                        if (limitSetting == CONFIG.e621DefualtLinkLimit) {
-                            return teleCtx.reply(`Looks like I got more than ${limitSetting} results! (${pageContents.length}) use the /limit command to change this number to be higher or lower. Pages are currently only allowed up to 3`);
-                        }
-                        return;
-                    }
-                    return teleCtx.reply(`I couldn't find anything, make sure your tags are correct!`);
-                })
-                .catch((err) => {
-                    teleCtx.reply(`Looks like I ran into a problem. Make sure your tags don't have a typo!\n\nIf the issue persists contact ${CONFIG.devContactName}`);
-                    return errHandler(err);
-                })
-        })
-}
-
-// TODO: make this act like searchandler()
-async function getE621PageContents(tagsArg) {
+async function getE621PageContents(tagsArg, limit) {
     let pageContents = [];
-    let limitSetting = CONFIG.e621DefualtLinkLimit;
-    let response = await wrapper.getE621PostIndexPaginate(tagsArg, 1, limitSetting, CONFIG.e621DefaultPageLimit);
+    let response = await wrapper.getE621PostIndexPaginate(tagsArg, 1, limit, CONFIG.e621DefaultPageLimit);
     response.forEach((page, index) => {
         page.forEach((post, postIndex) => {
             pageContents.push(post);
         });
     });
     return pageContents;
+}
+
+async function getTelegramUserLimit(teleID) {
+    let dbResponse = await db.getTelegramUserLimit(teleID);
+    return dbResponse;
 }
 
 function limitSetHandler(teleCtx) {
