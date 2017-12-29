@@ -16,15 +16,7 @@ bot.telegram.getMe().then((botInfo) => {
 
 // Put middleware stuff here
 bot.use(
-    // Allows for a .then() to be attached after sending a message
-    (ctx, next) => {
-        const reply = ctx.reply;
-        ctx.reply = (...args) => {
-            ctx.session.lastMessage = args;
-            reply(...args);
-        };
-        return next();
-    },
+    require('./bot/commands')
 );
 
 // Start the bot
