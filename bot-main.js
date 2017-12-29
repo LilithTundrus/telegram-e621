@@ -55,19 +55,19 @@ scrolling through the results of a search!!
 against a JSON DB table that contains all possible valid e621 tags
 //TODO: make everything a scene
 //TODO: create a 'picutre of the day' message thing to send daily
+//TODO: fix the issue where a callback search session only supports one at a time ;w;
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();
 
 const searchScene = new Scene('search');
 const popularScene = new Scene('popular');
-
-
 const pagingKeyboard = Extra.HTML().markup((m) =>
     m.inlineKeyboard([
         m.callbackButton('Next', 'Next'),
         m.callbackButton('Previous', 'Previous')
     ]));
+
 // TODO: reset all of the vars after an exit scene...this might get really messy
 function searchConstructor() {
     // Search scene
@@ -192,14 +192,6 @@ app.command('limit', (ctx) => {                                     // set a use
         return ctx.reply('Please give a number between 1 and 50 as a limit');
     }
     return limitSetHandler(ctx);
-});
-// Note: this should eventually be removed
-app.command('search', (ctx) => {                                    // debugging
-    if (ctx.message.text.length <= 7) {
-        ctx.reply('No tags given, searching most recent...');
-        return searchHandler(ctx);
-    }
-    return searchHandler(ctx, ctx.message.text.trim().substring(7));
 });
 app.command('menu', ({ reply }) => {
     return reply('Select an option', Markup
