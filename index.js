@@ -16,6 +16,7 @@ bot.telegram.getMe().then((botInfo) => {
 
 // Put middleware stuff here
 bot.use(
+    // get the 'index.js' in the /bot/commands folder which contains listeners and handlers for commands
     require('./bot/commands')
 );
 
