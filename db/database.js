@@ -19,6 +19,10 @@ function connect() {
         logger.info('Connected to DB.');
     });
 }
+function disconnect() {
+    logger.info('DB DISCONNECT');
+    return con.destroy();
+}
 
 function createUserTable() {
     var sql = "CREATE TABLE userdata (teleid VARCHAR(255), setlimit VARCHAR(255))";
@@ -79,3 +83,4 @@ module.exports.createUserTable = createUserTable;
 module.exports.addTelegramUserLimit = addTelegramUserLimit;
 module.exports.updateTelegramUserLimit = updateTelegramUserLimit;
 module.exports.getTelegramUserLimit = getTelegramUserLimit;
+module.exports.disconnect = disconnect;

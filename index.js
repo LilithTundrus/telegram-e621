@@ -11,6 +11,11 @@ const config = require('./config/config');
 const Logger = require('./lib/loggerClass');                        // Our custom logging class
 const logger = new Logger();                                        // Create an instance of our custom logger
 
+//init the DB and allow for all parts of the script to access it
+// through something a new Query(queryStatement)
+const db = require('./db/database');                                // Custom DB abstractor
+
+
 bot.telegram.getMe().then((botInfo) => {
     bot.options.username = botInfo.username;
 });
@@ -29,7 +34,7 @@ bot.use(
             reply(...args);
         };
         return next();
-    }
+    },
 );
 
 // Start the bot
