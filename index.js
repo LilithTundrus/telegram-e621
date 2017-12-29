@@ -5,6 +5,7 @@
  * Bot
  */
 const bot = require('./bot/bot-main');
+const session = require('telegraf/session');
 const errHandler = require('./utils/botErrHandler');
 const config = require('./config/config');
 const Logger = require('./lib/loggerClass');                        // Our custom logging class
@@ -16,9 +17,19 @@ bot.telegram.getMe().then((botInfo) => {
 
 // Put middleware stuff here
 bot.use(
+    session(),
     // get the 'index.js' in the /bot/commands folder which contains listeners and handlers for commands
     require('./bot/commands'),
-    require('./bot/listeners')
+    require('./bot/listeners'),
+    // Allow for attached .then() to a ctx.reply()
+    (ctx, next) => {
+        const reply = ctx.reply;
+        ctx.reply = (...args) => {
+            ctx.session.lastMessage = args;
+            reply(...args);
+        };
+        return next();
+    }
 );
 
 // Start the bot
