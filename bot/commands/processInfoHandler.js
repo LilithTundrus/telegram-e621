@@ -10,7 +10,7 @@ const processInfoHandler = async (ctx) => {
         logger.auth(`${ctx.message.from.username}(${ctx.message.from.id}) attempted to run the command 'processinfo' at ${new Date().toISOString()}`);
         return ctx.reply(`Sorry, you don't have access to this command. This attempt will be logged.`);
     } else {
-        let processInfoMessage = `RAM Total: ${Math.round(os.totalmem() / 1024 / 1024)}MB\nRAM free: ${Math.round(os.freemem() / 1024 / 1024)}MB\nIn use by Bot: ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB\nCPU load: ${os.loadavg()[0]}%`;
+        let processInfoMessage = `Bot Version: ${config.VER}\n\nRAM Total: ${Math.round(os.totalmem() / 1024 / 1024)}MB\nRAM free: ${Math.round(os.freemem() / 1024 / 1024)}MB\nIn use by Bot: ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB\nCPU load: ${os.loadavg()[0]}%`;
         processInfoMessage = processInfoMessage + `\n\nUptime: ${formatTime(process.uptime())}`;
         return ctx.reply(processInfoMessage);
     }
