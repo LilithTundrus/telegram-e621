@@ -9,13 +9,13 @@ const session = require('telegraf/session');
 const errHandler = require('./utils/botErrHandler');
 const config = require('./config/config');
 const Logger = require('./lib/loggerClass');                        // Our custom logging class
+const db = require('./db/database');                                // Custom DB abstractor
 const logger = new Logger();                                        // Create an instance of our custom logger
 
-//init the DB and allow for all parts of the script to access it
-// through something a new Query(queryStatement)
-const db = require('./db/database');                                // Custom DB abstractor
+// Connect to the DB once throughout the while bot code
+db.connect()
 
-
+// Get the name of the bot and assign it to bot options
 bot.telegram.getMe().then((botInfo) => {
     bot.options.username = botInfo.username;
 });
@@ -36,6 +36,10 @@ bot.use(
         return next();
     },
 );
+
+// Assign the db abstractor to ctx.db
+bot.context.db = db;
+
 
 // Start the bot
 bot.startPolling();
