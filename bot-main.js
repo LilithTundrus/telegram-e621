@@ -41,7 +41,6 @@ Notes:
 //TODO: improve limit settings/db calls
 //TODO: allow for page limit AND an items per page limit
 //TODO: allow a user to set a blacklist
-//TODO: set up a better keyboard thing (scenes)
 //TODO: allow user logins
 //TODO: setup a state machine for each user
 //TODO: fix the scenes not working when @ is used in groups 
@@ -65,8 +64,16 @@ const popularScene = new Scene('popular');
 const pagingKeyboard = Extra.HTML().markup((m) =>
     m.inlineKeyboard([
         m.callbackButton('Next', 'Next'),
-        m.callbackButton('Previous', 'Previous')
-    ]));
+        m.callbackButton('Previous', 'Previous')]
+    ));
+
+const popularKeyboard = Extra.HTML().markup((m) =>
+    m.inlineKeyboard([
+        m.callbackButton('Daily', 'daily'),
+        m.callbackButton('Weekly', 'weekly'),
+        m.callbackButton('Monthly', 'monthly'),
+        m.callbackButton('All time', 'alltime')]
+    ));
 
 // TODO: reset all of the vars after an exit scene...this might get really messy
 // TODO: on ENTER return a new searcHandler class...this is becoming a mess
@@ -144,18 +151,13 @@ function searchConstructor() {
 
 function popularConstructor() {
     // Popular scene
+    // On ENTER, return the class!
     var popFromID;
     popularScene.enter((ctx) => {
         // record the caller's ID
         popFromID = ctx.from.id;
         logger.debug(popFromID);
-        return ctx.reply(`Available options: /daily, /weekly /monthly /alltime`), Markup
-            .keyboard([
-                ['Daily', 'Weekly'],
-                ['Monthly', 'All Time'],
-            ])
-            .oneTime()
-            .resize()
+        return ctx.reply(`Available options: /daily, /weekly /monthly /alltime`, popularKeyboard)
     });
     popularScene.leave((ctx) => ctx.reply('exiting popular scene'));
     popularScene.command('back', leave());
@@ -174,18 +176,21 @@ function popularConstructor() {
 const stage = new Stage([searchScene, popularScene]);
 searchConstructor();
 popularConstructor();
+app.use(
+    session(),
+    stage.middleware(),
+    // Allows for a .then() to be attached after sending a message
+    (ctx, next) => {
+        const reply = ctx.reply;
+        ctx.reply = (...args) => {
+            ctx.session.lastMessage = args;
+            reply(...args);
+        };
+        return next();
+    }
+);
 app.startPolling();                                                 // Start the bot and keep listening for events
-app.use(session());
-app.use(stage.middleware());
-// I literally don't know what this is doing but it lets us attach a .then to sending telegram messages
-app.use((ctx, next) => {
-    const reply = ctx.reply;
-    ctx.reply = (...args) => {
-        ctx.session.lastMessage = args;
-        reply(...args);
-    };
-    return next();
-});
+
 
 // #region appCommands
 app.command('start', ({ from, reply }) => {
