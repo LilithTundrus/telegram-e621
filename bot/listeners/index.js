@@ -15,6 +15,7 @@ composer.use(
     stage.middleware(),
 )
 
+
 composer.hears('🔍 Search', enter('search'));
 
 

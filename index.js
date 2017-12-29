@@ -12,6 +12,9 @@ const Logger = require('./lib/loggerClass');                        // Our custo
 const db = require('./db/database');                                // Custom DB abstractor
 const logger = new Logger();                                        // Create an instance of our custom logger
 
+//TODO: set up a response time checker
+
+
 // Connect to the DB once throughout the while bot code
 db.connect()
 
@@ -39,7 +42,6 @@ bot.use(
 
 // Assign the db abstractor to ctx.db
 bot.context.db = db;
-
 
 // Start the bot
 bot.startPolling();
