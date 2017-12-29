@@ -4,7 +4,7 @@ const logger = new Logger();                                        // Create an
 const Scene = require('telegraf/scenes/base');
 const Stage = require('telegraf/stage');
 const config = require('../../config/config');
-const db = require('../../db/database');                            // Custom DB abstractor
+const searchState = require('../../lib/searchStateClass');
 const e621Helper = require('../../lib/e621HelperClass.js');         // E621 API helper class
 const wrapper = new e621Helper();                                   // Create an instance of the API wrapper to use
 const Extra = require('telegraf/extra');
@@ -14,21 +14,16 @@ const pagingKeyboard = Extra.HTML().markup((m) =>
         m.callbackButton('Next', 'Next'),
         m.callbackButton('Previous', 'Previous')]
     ));
-db.connect();
-
 
 const { enter, leave } = Stage;
 const searchScene = new Scene('search');
 
-//TODO: make this callable as many times as we need!
+let searchInstances = [];
 
-var lastSentMessageID;
-let searchSceneArray = [];
-let currentIndex = 0;
 
 searchScene.enter((ctx) => {
-    logger.debug(`Search started from ${ctx.message.from.username}`);
-    ctx.reply(`Give me some tags to search by. Use /back when you're done.`);
+    // return a new searchHandler?!
+    searchEnter(ctx);
 });
 searchScene.leave((ctx) => {
     // reset all the vars used here
@@ -48,7 +43,8 @@ searchScene.hears('😎 Popular', (ctx) => {
 });
 searchScene.on('text', (ctx) => {
     let limitSetting = config.e621DefaultPageSize;
-    return getTelegramUserLimit(ctx.message.from.id)
+    let userState = getState(ctx.message.from.id)
+    return ctx.db.getTelegramUserLimit(ctx.message.from.id)
         .then((userData) => {
             return limitSetting = userData[0].setlimit;
         })
@@ -59,29 +55,32 @@ searchScene.on('text', (ctx) => {
         .then(() => {
             return getE621PageContents(ctx.message.text, limitSetting)
                 .then((response) => {
-                    searchSceneArray = response;
+                    userState.state.searchSceneArray = response;
                     return ctx.reply(`${response[0].file_url}`, pagingKeyboard)
                         .then((messageResult) => {
-                            lastSentMessageID = messageResult.message_id;
+                            //lastSentMessageID = messageResult.message_id;
+                            userState.state.lastSentMessageID = messageResult.message_id;
                         })
                 })
                 .catch((err) => {
+                    logger.error(err)
                     return ctx.reply(`Looks like I ran into a problem. If the issue persists contact ${config.devContactName}`);
                 })
         })
 });
 searchScene.action(/.+/, (ctx) => {
+    let userState = getState(ctx.chat.id)
+    logger.debug(JSON.stringify(ctx.chat))
     if (ctx.match[0] == 'Next') {
-        currentIndex++;
-        ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, searchSceneArray[currentIndex].file_url, pagingKeyboard)
+        userState.state.currentIndex++;
+        ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, userState.state.searchSceneArray[userState.state.currentIndex].file_url, pagingKeyboard)
     } else if (ctx.match[0] == 'Previous') {
-        if (currentIndex !== 0) {
-            currentIndex--;
-            ctx.telegram.editMessageText(ctx.chat.id, lastSentMessageID, null, searchSceneArray[currentIndex].file_url, pagingKeyboard);
+        if (userState.state.currentIndex !== 0) {
+            userState.state.currentIndex--;
+            ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, userState.state.searchSceneArray[userState.state.currentIndex].file_url, pagingKeyboard);
         }
     }
 })
-
 
 async function getE621PageContents(tagsArg, limit) {
     let pageContents = [];
@@ -94,9 +93,32 @@ async function getE621PageContents(tagsArg, limit) {
     return pageContents;
 }
 
-async function getTelegramUserLimit(teleID) {
-    let dbResponse = await db.getTelegramUserLimit(teleID);
-    return dbResponse;
+
+function searchEnter(teleCtx) {
+    logger.debug(`Search started from ${teleCtx.message.from.username}`);
+    let state = new searchState({
+        lastSentMessageID: 0,
+        searchSceneArray: [],
+        currentIndex: 0,
+        teleID: teleCtx.message.from.id
+    })
+    searchInstances.push({
+        id: teleCtx.message.from.id,
+        state: state
+    })
+    teleCtx.reply(`Give me some tags to search by. Use /back when you're done.`);
+}
+
+function getState(teleID) {
+    // handle the state of a user's interaction with the search scene
+    let entryToReturn;
+    searchInstances.forEach((entry, index) => {
+        if (entry.id == teleID) {
+            return entryToReturn = entry;
+        }
+    });
+    // if an object matching the ID exists, return the object, if not return a new one for the ID!
+    return entryToReturn;
 }
 
 module.exports = searchScene;
