@@ -58,7 +58,6 @@ searchScene.on('text', (ctx) => {
                     userState.state.searchSceneArray = response;
                     return ctx.reply(`${response[0].file_url}`, pagingKeyboard)
                         .then((messageResult) => {
-                            //lastSentMessageID = messageResult.message_id;
                             userState.state.lastSentMessageID = messageResult.message_id;
                         })
                 })
@@ -93,7 +92,6 @@ async function getE621PageContents(tagsArg, limit) {
     return pageContents;
 }
 
-
 function searchEnter(teleCtx) {
     logger.debug(`Search started from ${teleCtx.message.from.username}`);
     let state = new searchState({
@@ -106,7 +104,11 @@ function searchEnter(teleCtx) {
         id: teleCtx.message.from.id,
         state: state
     })
-    teleCtx.reply(`Give me some tags to search by. Use /back when you're done.`);
+    if (teleCtx.chat.type !== 'private') {
+        teleCtx.scene.leave();
+        return teleCtx.reply(`Please only PM this bot`);
+    }
+    return teleCtx.reply(`Give me some tags to search by. Use /back when you're done.`);
 }
 
 function getState(teleID) {
