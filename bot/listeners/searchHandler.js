@@ -22,9 +22,9 @@ TODO: better handle paging content
 TODO: move the paging keyboard to a module.exports thing
 TODO: on text, ensure all tags are valid
 TODO: better error handle issues
-TODO: provide more info on responses
 TODO: fix all the other command listeners (popular, settings ,etc)
 TODO: support group chats
+TODO: clean this up!
 */
 
 // A really hacky way to store the state of this function per user
@@ -62,7 +62,7 @@ searchScene.on('text', (ctx) => {
             return getE621PageContents(ctx.message.text, limitSetting)
                 .then((response) => {
                     userState.state.searchSceneArray = response;
-                    let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>`;
+                    let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>\n❤️: ${response[0].fav_count}`;
                     return ctx.replyWithHTML(message, pagingKeyboard)
                         .then((messageResult) => {
                             userState.state.lastSentMessageID = messageResult.message_id;
@@ -77,18 +77,21 @@ searchScene.on('text', (ctx) => {
 // This is listening for the callback buttons
 searchScene.action(/.+/, (ctx) => {
     let userState = getState(ctx.chat.id)
-    logger.debug(JSON.stringify(ctx.chat))
     if (ctx.match[0] == 'Next') {
         if (userState.state.currentIndex !== userState.state.searchSceneArray.length - 1) {
             userState.state.currentIndex++;
-            let message = `Post ${userState.state.currentIndex + 1} of ${userState.state.searchSceneArray.length}: \n<a href="${userState.state.searchSceneArray[userState.state.currentIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(userState.state.searchSceneArray[userState.state.currentIndex].id)}">E621 Post</a>`;
+            let currentUserStateIndex = userState.state.currentIndex;
+            let currentUserStateArray = userState.state.searchSceneArray;
+            let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}`;
             return ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, message, pagingKeyboard)
         }
-        return ctx.reply(`That's the last image`);
+        return ctx.reply(`That's the last image. if you want to adjust your limit use the /limit command or the settings keyboard command`);
     } else if (ctx.match[0] == 'Previous') {
         if (userState.state.currentIndex !== 0) {
             userState.state.currentIndex--;
-            let message = `Post ${userState.state.currentIndex + 1} of ${userState.state.searchSceneArray.length}: \n<a href="${userState.state.searchSceneArray[userState.state.currentIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(userState.state.searchSceneArray[userState.state.currentIndex].id)}">E621 Post</a>`;
+            let currentUserStateIndex = userState.state.currentIndex;
+            let currentUserStateArray = userState.state.searchSceneArray;
+            let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}`;
             ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, message, pagingKeyboard);
         }
     }
@@ -151,7 +154,6 @@ function removeStateForUser(teleID) {
     logger.debug(`Removing user with ID: ${teleID} from searchInstances`);
     logger.debug(searchInstances.length);
 }
-
 
 // Export the scene as the user-facing code. All internal functions cannot be used directly
 module.exports = searchScene;
