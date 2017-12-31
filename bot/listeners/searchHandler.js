@@ -23,6 +23,7 @@ TODO: move the paging keyboard to a module.exports thing
 TODO: on text, ensure all tags are valid
 TODO: better error handle issues
 TODO: provide more info on responses
+TODO: fix all the other command listeners (popular, settings ,etc)
 */
 
 // A really hacky way to store the state of this function per user
@@ -106,7 +107,6 @@ function searchEnter(teleCtx) {
         lastSentMessageID: 0,
         searchSceneArray: [],
         currentIndex: 0,
-        teleID: teleCtx.message.from.id
     })
     searchInstances.push({
         id: teleCtx.message.from.id,
@@ -120,10 +120,9 @@ function searchEnter(teleCtx) {
 }
 
 function searchLeave(teleCtx) {
-    // reset all the vars used here
-    // debugging
     // remove the user from the state array
     removeStateForUser(teleCtx.message.from.id);
+    // debugging
     teleCtx.reply('Exiting search scene');
 }
 
@@ -143,7 +142,6 @@ function removeStateForUser(teleID) {
     searchInstances.forEach((entry, index) => {
         if (entry.id == teleID) {
             logger.debug(`Removing user with ${entry.id} at ${index}`);
-            logger.debug(searchInstances);
             return searchInstances.splice(index);
         }
     });
