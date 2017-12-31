@@ -139,13 +139,15 @@ function getState(teleID) {
 }
 
 function removeStateForUser(teleID) {
-    searchInstances.forEach((entry, index) => {
-        if (entry.id == teleID) {
-            logger.debug(`Removing user with ${entry.id} at ${index}`);
-            return searchInstances.splice(index);
+    for (var i = searchInstances.length - 1; i >= 0; --i) {
+        if (searchInstances[i].id == teleID) {
+            searchInstances.splice(i, 1);
         }
-    });
+    }
+    logger.debug(`Removing user with ID: ${teleID} from searchInstances`);
+    logger.debug(searchInstances.length);
 }
+
 
 // Export the scene as the user-facing code. All internal functions cannot be used directly
 module.exports = searchScene;
