@@ -7,8 +7,10 @@ const Extra = require('telegraf/extra');
 const Stage = require('telegraf/stage');
 
 const searchHandler = require('./searchHandler');
+const popularHandler = require('./popularHandler');
 
-const stage = new Stage([searchHandler]);
+
+const stage = new Stage([searchHandler, popularHandler]);
 const { enter, leave } = Stage;
 
 composer.use(
@@ -17,6 +19,7 @@ composer.use(
 
 
 composer.hears('🔍 Search', enter('search'));
+composer.hears('😎 Popular', enter('popular'));
 
 
 
