@@ -17,8 +17,6 @@ const pagingKeyboard = Extra.HTML().markup((m) =>
 const { enter, leave } = Stage;
 const searchScene = new Scene('search');
 /*
-TODO: clean up the user-based class naming scheme (too many this.that.thing)
-TODO: better handle paging content
 TODO: move the paging keyboard to a module.exports thing
 TODO: on text, ensure all tags are valid
 TODO: better error handle issues
@@ -62,7 +60,7 @@ searchScene.on('text', (ctx) => {
             return getE621PageContents(ctx.message.text, limitSetting)
                 .then((response) => {
                     userState.state.searchSceneArray = response;
-                    let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>\n❤️: ${response[0].fav_count}`;
+                    let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>\n❤️: ${response[0].fav_count}\nType: ${response[0].file_ext}`;
                     return ctx.replyWithHTML(message, pagingKeyboard)
                         .then((messageResult) => {
                             userState.state.lastSentMessageID = messageResult.message_id;
@@ -82,7 +80,7 @@ searchScene.action(/.+/, (ctx) => {
             userState.state.currentIndex++;
             let currentUserStateIndex = userState.state.currentIndex;
             let currentUserStateArray = userState.state.searchSceneArray;
-            let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}`;
+            let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
             return ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, message, pagingKeyboard)
         }
         return ctx.reply(`That's the last image. if you want to adjust your limit use the /limit command or the settings keyboard command`);
@@ -91,7 +89,7 @@ searchScene.action(/.+/, (ctx) => {
             userState.state.currentIndex--;
             let currentUserStateIndex = userState.state.currentIndex;
             let currentUserStateArray = userState.state.searchSceneArray;
-            let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}`;
+            let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
             ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, message, pagingKeyboard);
         }
     }
