@@ -71,7 +71,7 @@ searchScene.on('text', (ctx) => {
                 })
         })
 });
-// This is listening for the callback buttons.. I think
+// This is listening for the callback buttons
 searchScene.action(/.+/, (ctx) => {
     let userState = getState(ctx.chat.id)
     logger.debug(JSON.stringify(ctx.chat))
@@ -114,7 +114,7 @@ function searchEnter(teleCtx) {
     })
     if (teleCtx.chat.type !== 'private') {
         teleCtx.scene.leave();
-        return teleCtx.reply(`Please only PM this bot`);
+        return teleCtx.reply(`Please only PM this bot for now! Sorry`);
     }
     return teleCtx.reply(`Give me some tags to search by. Use /back when you're done.`);
 }
