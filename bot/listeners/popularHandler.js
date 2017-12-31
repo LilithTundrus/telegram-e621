@@ -24,38 +24,63 @@ const popularKeyboard = Extra.HTML().markup((m) =>
 const { enter, leave } = Stage;
 const popularScene = new Scene('popular');
 
-// Popular scene
-// On ENTER, return the class!
 let popularInstances = [];
-
 
 popularScene.enter((ctx) => {
     popularEnter(ctx);
 });
-popularScene.leave((ctx) => ctx.reply('exiting popular scene'));
+popularScene.leave((ctx) => {
+    popularLeave(ctx);
+});
 popularScene.command('back', leave());
 popularScene.command('daily', (ctx) => {
     popularSearchHandler(ctx, 'daily').then(() => {
         //testing scene leaving on command
-        ctx.scene.leave();
+        //ctx.scene.leave();
     })
 });
 popularScene.command('weekly', (ctx) => popularSearchHandler(ctx, 'weekly'));
 popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
 popularScene.command('alltime', (ctx) => popularSearchHandler(ctx, 'alltime'));
 
-
 function popularSearchHandler(teleCtx, typeArg) {
+    let userState = getState(teleCtx.message.from.id);
     return getE621PopularContents(typeArg)
         .then((response) => {                                   // returns a single page
-
-            return teleCtx.reply(`Top 25 most popular posts ${typeArg}: ${response.slice(0, 24).join('\n')}`);
+            userState.state.popularSceneArray = response;
+            let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>\n❤️: ${response[0].fav_count}\nType: ${response[0].file_ext}`;
+            return teleCtx.replyWithHTML(message, pagingKeyboard)
+                .then((messageResult) => {
+                    userState.state.lastSentMessageID = messageResult.message_id;
+                })
         })
         .catch((err) => {
-            teleCtx.reply(`Looks like I ran into a problem.\n\nIf the issue persists contact ${CONFIG.devContactName}`);
-            return errHandler(err);
+            logger.error(err)
+            return teleCtx.reply(`Looks like I ran into a problem. If the issue persists contact ${config.devContactName}`);
         })
 }
+// This is listening for the callback buttons
+popularScene.action(/.+/, (ctx) => {
+    let userState = getState(ctx.chat.id)
+    if (ctx.match[0] == 'Next') {
+        if (userState.state.currentIndex !== userState.state.popularSceneArray.length - 1) {
+            userState.state.currentIndex++;
+            let currentUserStateIndex = userState.state.currentIndex;
+            let currentUserStateArray = userState.state.popularSceneArray;
+            let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
+            return ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, message, pagingKeyboard)
+        }
+        return ctx.reply(`That's the last image. if you want to adjust your limit use the /limit command or the settings keyboard command`);
+    } else if (ctx.match[0] == 'Previous') {
+        if (userState.state.currentIndex !== 0) {
+            userState.state.currentIndex--;
+            let currentUserStateIndex = userState.state.currentIndex;
+            let currentUserStateArray = userState.state.popularSceneArray;
+            let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
+            ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, message, pagingKeyboard);
+        }
+    }
+})
 
 async function getE621PopularContents(typeArg) {
     let pageContents = [];
@@ -70,7 +95,7 @@ function popularEnter(teleCtx) {
     logger.debug(`Popular query started from ${teleCtx.message.from.username}`);
     let state = new popularState({
         lastSentMessageID: 0,
-        searchSceneArray: [],
+        popularSceneArray: [],
         currentIndex: 0,
     })
     popularInstances.push({
@@ -85,13 +110,16 @@ function popularEnter(teleCtx) {
 }
 
 function popularLeave(teleCtx) {
-
+    // remove the user from the state array
+    removeStateForUser(teleCtx.message.from.id);
+    // debugging
+    return teleCtx.reply('Exiting popular scene');
 }
 
 function getState(teleID) {
     // handle the state of a user's interaction with the search scene
     let entryToReturn;
-    searchInstances.forEach((entry, index) => {
+    popularInstances.forEach((entry, index) => {
         if (entry.id == teleID) {
             return entryToReturn = entry;
         }
