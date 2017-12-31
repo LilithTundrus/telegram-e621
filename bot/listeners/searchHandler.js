@@ -24,6 +24,7 @@ TODO: on text, ensure all tags are valid
 TODO: better error handle issues
 TODO: provide more info on responses
 TODO: fix all the other command listeners (popular, settings ,etc)
+TODO: support group chats
 */
 
 // A really hacky way to store the state of this function per user
@@ -61,7 +62,8 @@ searchScene.on('text', (ctx) => {
             return getE621PageContents(ctx.message.text, limitSetting)
                 .then((response) => {
                     userState.state.searchSceneArray = response;
-                    return ctx.reply(`${response[0].file_url}`, pagingKeyboard)
+                    let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>`;
+                    return ctx.replyWithHTML(message, pagingKeyboard)
                         .then((messageResult) => {
                             userState.state.lastSentMessageID = messageResult.message_id;
                         })
@@ -79,13 +81,15 @@ searchScene.action(/.+/, (ctx) => {
     if (ctx.match[0] == 'Next') {
         if (userState.state.currentIndex !== userState.state.searchSceneArray.length - 1) {
             userState.state.currentIndex++;
-            return ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, userState.state.searchSceneArray[userState.state.currentIndex].file_url, pagingKeyboard)
+            let message = `Post ${userState.state.currentIndex + 1} of ${userState.state.searchSceneArray.length}: \n<a href="${userState.state.searchSceneArray[userState.state.currentIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(userState.state.searchSceneArray[userState.state.currentIndex].id)}">E621 Post</a>`;
+            return ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, message, pagingKeyboard)
         }
         return ctx.reply(`That's the last image`);
     } else if (ctx.match[0] == 'Previous') {
         if (userState.state.currentIndex !== 0) {
             userState.state.currentIndex--;
-            ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, userState.state.searchSceneArray[userState.state.currentIndex].file_url, pagingKeyboard);
+            let message = `Post ${userState.state.currentIndex + 1} of ${userState.state.searchSceneArray.length}: \n<a href="${userState.state.searchSceneArray[userState.state.currentIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(userState.state.searchSceneArray[userState.state.currentIndex].id)}">E621 Post</a>`;
+            ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, message, pagingKeyboard);
         }
     }
 })
@@ -123,7 +127,7 @@ function searchLeave(teleCtx) {
     // remove the user from the state array
     removeStateForUser(teleCtx.message.from.id);
     // debugging
-    teleCtx.reply('Exiting search scene');
+    return teleCtx.reply('Exiting search scene');
 }
 
 function getState(teleID) {
