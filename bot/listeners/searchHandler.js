@@ -14,21 +14,25 @@ const pagingKeyboard = Extra.HTML().markup((m) =>
         m.callbackButton('Next', 'Next'),
         m.callbackButton('Previous', 'Previous')]
     ));
-
 const { enter, leave } = Stage;
 const searchScene = new Scene('search');
+/*
+TODO: clean up the user-based class naming scheme (too many this.that.thing)
+TODO: better handle paging content
+TODO: move the paging keyboard to a module.exports thing
+TODO: on text, ensure all tags are valid
+TODO: better error handle issues
+TODO: provide more info on responses
+*/
 
+// A really hacky way to store the state of this function per user
 let searchInstances = [];
 
-
 searchScene.enter((ctx) => {
-    // return a new searchHandler?!
     searchEnter(ctx);
 });
 searchScene.leave((ctx) => {
-    // reset all the vars used here
-    // debugging
-    ctx.reply('exiting search scene');
+    searchLeave(ctx);
 });
 searchScene.command('back', leave());
 searchScene.hears('🔍 Search', (ctx) => {
@@ -43,7 +47,7 @@ searchScene.hears('😎 Popular', (ctx) => {
 });
 searchScene.on('text', (ctx) => {
     let limitSetting = config.e621DefaultPageSize;
-    let userState = getState(ctx.message.from.id)
+    let userState = getState(ctx.message.from.id);
     return ctx.db.getTelegramUserLimit(ctx.message.from.id)
         .then((userData) => {
             return limitSetting = userData[0].setlimit;
@@ -67,12 +71,16 @@ searchScene.on('text', (ctx) => {
                 })
         })
 });
+// This is listening for the callback buttons.. I think
 searchScene.action(/.+/, (ctx) => {
     let userState = getState(ctx.chat.id)
     logger.debug(JSON.stringify(ctx.chat))
     if (ctx.match[0] == 'Next') {
-        userState.state.currentIndex++;
-        ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, userState.state.searchSceneArray[userState.state.currentIndex].file_url, pagingKeyboard)
+        if (userState.state.currentIndex !== userState.state.searchSceneArray.length - 1) {
+            userState.state.currentIndex++;
+            return ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, userState.state.searchSceneArray[userState.state.currentIndex].file_url, pagingKeyboard)
+        }
+        return ctx.reply(`That's the last image`);
     } else if (ctx.match[0] == 'Previous') {
         if (userState.state.currentIndex !== 0) {
             userState.state.currentIndex--;
@@ -111,6 +119,14 @@ function searchEnter(teleCtx) {
     return teleCtx.reply(`Give me some tags to search by. Use /back when you're done.`);
 }
 
+function searchLeave(teleCtx) {
+    // reset all the vars used here
+    // debugging
+    // remove the user from the state array
+    removeStateForUser(teleCtx.message.from.id);
+    teleCtx.reply('Exiting search scene');
+}
+
 function getState(teleID) {
     // handle the state of a user's interaction with the search scene
     let entryToReturn;
@@ -123,4 +139,15 @@ function getState(teleID) {
     return entryToReturn;
 }
 
+function removeStateForUser(teleID) {
+    searchInstances.forEach((entry, index) => {
+        if (entry.id == teleID) {
+            logger.debug(`Removing user with ${entry.id} at ${index}`);
+            logger.debug(searchInstances);
+            return searchInstances.splice(index);
+        }
+    });
+}
+
+// Export the scene as the user-facing code. All internal functions cannot be used directly
 module.exports = searchScene;
