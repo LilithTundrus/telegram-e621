@@ -33,9 +33,7 @@ popularScene.leave((ctx) => {
     popularLeave(ctx);
 });
 popularScene.command('back', leave());
-popularScene.command('daily', (ctx) => {
-    popularSearchHandler(ctx, 'daily')
-});
+popularScene.command('daily', (ctx) => popularSearchHandler(ctx, 'daily'));
 popularScene.command('weekly', (ctx) => popularSearchHandler(ctx, 'weekly'));
 popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
 popularScene.command('alltime', (ctx) => popularSearchHandler(ctx, 'alltime'));
