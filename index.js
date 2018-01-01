@@ -14,9 +14,8 @@ const logger = new Logger();                                        // Create an
 
 //TODO: set up a response time checker
 
-
 // Connect to the DB once throughout the while bot code
-db.connect()
+db.connect();
 
 // Get the name of the bot and assign it to bot options
 bot.telegram.getMe().then((botInfo) => {

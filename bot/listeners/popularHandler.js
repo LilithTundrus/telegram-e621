@@ -11,7 +11,6 @@ const Extra = require('telegraf/extra');
 const telegramKeyboards = require('../../lib/keyboardConsts');
 const pagingKeyboard = telegramKeyboards.pagingKeyboard;
 const popularKeyboard = telegramKeyboards.popularKeyboard;
-
 const { enter, leave } = Stage;
 const popularScene = new Scene('popular');
 
