@@ -7,13 +7,8 @@ const config = require('../../config/config');
 const searchState = require('../../lib/searchStateClass');
 const e621Helper = require('../../lib/e621HelperClass.js');         // E621 API helper class
 const wrapper = new e621Helper();                                   // Create an instance of the API wrapper to use
-const Extra = require('telegraf/extra');
-
-const pagingKeyboard = Extra.HTML().markup((m) =>
-    m.inlineKeyboard([
-        m.callbackButton('Next', 'Next'),
-        m.callbackButton('Previous', 'Previous')]
-    ));
+const telegramKeyboards = require('../../lib/keyboardConsts');
+const pagingKeyboard = telegramKeyboards.pagingKeyboard;
 const { enter, leave } = Stage;
 const searchScene = new Scene('search');
 /*

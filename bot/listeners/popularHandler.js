@@ -8,19 +8,10 @@ const popularState = require('../../lib/popularStateClass');
 const e621Helper = require('../../lib/e621HelperClass.js');         // E621 API helper class
 const wrapper = new e621Helper();                                   // Create an instance of the API wrapper to use
 const Extra = require('telegraf/extra');
-const pagingKeyboard = Extra.HTML().markup((m) =>
-    m.inlineKeyboard([
-        m.callbackButton('Next', 'Next'),
-        m.callbackButton('Previous', 'Previous')]
-    ));
+const telegramKeyboards = require('../../lib/keyboardConsts');
+const pagingKeyboard = telegramKeyboards.pagingKeyboard;
+const popularKeyboard = telegramKeyboards.popularKeyboard;
 
-const popularKeyboard = Extra.HTML().markup((m) =>
-    m.inlineKeyboard([
-        m.callbackButton('Daily', 'daily'),
-        m.callbackButton('Weekly', 'weekly'),
-        m.callbackButton('Monthly', 'monthly'),
-        m.callbackButton('All time', 'alltime')]
-    ));
 const { enter, leave } = Stage;
 const popularScene = new Scene('popular');
 
@@ -63,7 +54,7 @@ popularScene.action(/.+/, (ctx) => {
             let currentUserStateIndex = userState.state.currentIndex;
             let currentUserStateArray = userState.state.popularSceneArray;
             let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
-            return ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, message, pagingKeyboard)
+            return ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, message, pagingKeyboard);
         }
         return ctx.reply(`That's the last image. Popular posts are limited to 32 results`);
     } else if (ctx.match[0] == 'Previous') {
