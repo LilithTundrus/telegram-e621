@@ -34,10 +34,7 @@ popularScene.leave((ctx) => {
 });
 popularScene.command('back', leave());
 popularScene.command('daily', (ctx) => {
-    popularSearchHandler(ctx, 'daily').then(() => {
-        //testing scene leaving on command
-        //ctx.scene.leave();
-    })
+    popularSearchHandler(ctx, 'daily')
 });
 popularScene.command('weekly', (ctx) => popularSearchHandler(ctx, 'weekly'));
 popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
@@ -70,7 +67,7 @@ popularScene.action(/.+/, (ctx) => {
             let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
             return ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, message, pagingKeyboard)
         }
-        return ctx.reply(`That's the last image. if you want to adjust your limit use the /limit command or the settings keyboard command`);
+        return ctx.reply(`That's the last image. Popular posts are limited to 32 results`);
     } else if (ctx.match[0] == 'Previous') {
         if (userState.state.currentIndex !== 0) {
             userState.state.currentIndex--;
