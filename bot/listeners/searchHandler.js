@@ -12,12 +12,9 @@ const pagingKeyboard = telegramKeyboards.pagingKeyboard;
 const { enter, leave } = Stage;
 const searchScene = new Scene('search');
 /*
-TODO: move the paging keyboard to a module.exports thing
 TODO: on text, ensure all tags are valid
 TODO: better error handle issues
-TODO: fix all the other command listeners (popular, settings ,etc)
 TODO: support group chats
-TODO: clean this up!
 */
 
 // A really hacky way to store the state of this function per user
