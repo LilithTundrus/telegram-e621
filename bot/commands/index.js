@@ -9,6 +9,7 @@ const Stage = require('telegraf/stage');
 const startHandler = require('./startHandler');
 const processInfoHandler = require('./processInfoHandler');
 const menuHandler = require('./menuHandler');
+const helpHandler = require('./helpHandler');
 const searchHandler = require('../listeners/searchHandler');
 const popularHandler = require('../listeners/popularHandler');
 
@@ -24,6 +25,7 @@ composer.use(
 composer.command('start', startHandler);
 composer.command('processinfo', processInfoHandler);
 composer.command('menu', menuHandler);
+composer.command('help', helpHandler);
 composer.command('search', enter('search'));
 composer.command('popular', enter('popular'));
 
