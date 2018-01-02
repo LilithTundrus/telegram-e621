@@ -5,7 +5,7 @@ const menuHanlder = async (ctx) => {
     return ctx.reply('Select an option', Markup
         .keyboard([
             ['🔍 Search', '😎 Popular'],
-            ['☸ Settings', '📞 Feedback'],
+            ['☸ Settings', '📞 Feedback', '❓ Help']
         ])
         .oneTime()
         .resize()
