@@ -10,6 +10,8 @@ const startHandler = require('./startHandler');
 const processInfoHandler = require('./processInfoHandler');
 const menuHandler = require('./menuHandler');
 const helpHandler = require('./helpHandler');
+const limitHandler = require('./limitHandler');
+
 const registerHandler = require('./registerHandler');
 const searchHandler = require('../listeners/searchHandler');
 const popularHandler = require('../listeners/popularHandler');
@@ -28,6 +30,7 @@ composer.command('processinfo', processInfoHandler);
 composer.command('menu', menuHandler);
 composer.command('help', helpHandler);
 composer.command('register', registerHandler);
+composer.command('limit', limitHandler);
 composer.command('search', enter('search'));
 composer.command('popular', enter('popular'));
 
