@@ -33,28 +33,6 @@ Notes:
 - ctx == context of the message from telegraf
 - e621 popular endpoints DO NOT support any url options (limit, tags, etc.)
 
-//TODO: catch errors better! and email admins on fatal crash
-//TODO: init help guide
-//TODO: get the bot to 'type' while loading requests
-//TODO: add more info to each post entry
-//TODO: improve user activity logging
-//TODO: improve limit settings/db calls
-//TODO: allow for page limit AND an items per page limit
-//TODO: allow a user to set a blacklist
-//TODO: allow user logins
-//TODO: setup a state machine for each user
-//TODO: fix the scenes not working when @ is used in groups 
-//TODO: with the search scene, create another keyboard to allow for
-scrolling through the results of a search!!
-//TODO: figure out how to make scenes a function to share data??
-//TODO: allow a remote restart
-//TODO: if something is a video, still attempt to get a thumbnail??
-//TODO: error handle the e621 helper like MAD..it feels kind of brittle
-//TODO: when allowing users to set a blacklist, ensure that the tags are valid
-against a JSON DB table that contains all possible valid e621 tags
-//TODO: make everything a scene
-//TODO: create a 'picutre of the day' message thing to send daily
-//TODO: fix the issue where a callback search session only supports one at a time ;w;
 */
 logger.info(`e621client_bot ${VER} started at: ${new Date().toISOString()}`);
 db.connect();

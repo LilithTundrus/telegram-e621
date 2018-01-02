@@ -22,6 +22,19 @@ const logger = new Logger();                                        // Create an
 //TODO: get settings menu working
 //TODO: salt, hash the DB data
 //TODO: make the bot more user friendly (add a help section!)
+//TODO: create a 'picutre of the day' message thing to send daily
+//TODO: error handle the e621 helper like MAD..it feels kind of brittle
+//TODO: when allowing users to set a blacklist, ensure that the tags are valid
+//against a JSON DB table that contains all possible valid e621 tags
+//TODO: make everything a scene
+//TODO: fix the scenes not working when @ is used in groups or IN GROUPS AT ALL
+//TODO: improve user activity logging
+//TODO: improve limit settings/db calls
+//TODO: allow for page limit AND an items per page limit
+//TODO: allow a user to set a blacklist
+//TODO: allow user logins
+//TODO: get the bot to 'type' while loading requests
+
 
 // Connect to the DB once throughout the while bot code
 db.connect();
