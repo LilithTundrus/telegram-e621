@@ -16,7 +16,12 @@ const logger = new Logger();                                        // Create an
 //TODO: set up the /commands in the botfather options
 //TODO: support ALL actions through BOTH command types (/commands and keyboard input)
 //TODO: re-add support for user limit stuff via settings
-//TODO:
+//TODO: allow for users to provide their username/pw to create a custom profile for them
+//TODO: allow for blacklist get from API or a bot-stored blacklist for each teleID
+//TODO: update README.MD
+//TODO: get settings menu working
+//TODO: salt, hash the DB data
+//TODO: make the bot more user friendly (add a help section!)
 
 // Connect to the DB once throughout the while bot code
 db.connect();
