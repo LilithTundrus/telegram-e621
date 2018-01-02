@@ -13,7 +13,10 @@ const db = require('./db/database');                                // Custom DB
 const logger = new Logger();                                        // Create an instance of our custom logger
 
 //TODO: set up a response time checker
-//TODO: set up the / commands in the botfather options
+//TODO: set up the /commands in the botfather options
+//TODO: support ALL actions through BOTH command types (/commands and keyboard input)
+//TODO: re-add support for user limit stuff via settings
+//TODO:
 
 // Connect to the DB once throughout the while bot code
 db.connect();
