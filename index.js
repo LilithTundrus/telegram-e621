@@ -13,6 +13,7 @@ const db = require('./db/database');                                // Custom DB
 const logger = new Logger();                                        // Create an instance of our custom logger
 
 //TODO: set up a response time checker
+//TODO: set up the / commands in the botfather options
 
 // Connect to the DB once throughout the while bot code
 db.connect();
