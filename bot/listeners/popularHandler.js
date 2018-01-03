@@ -64,6 +64,8 @@ popularScene.action(/.+/, (ctx) => {
             let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
             ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, message, pagingKeyboard);
         }
+    } else if (ctx.match[0] == 'Exit') {
+        return ctx.scene.leave();
     }
 })
 
@@ -77,7 +79,7 @@ async function getE621PopularContents(typeArg) {
 }
 
 function popularEnter(teleCtx) {
-    logger.debug(`Popular query started from ${teleCtx.message.from.username}  with chat ID ${ctx.chat.id}`);
+    logger.debug(`Popular query started from ${teleCtx.message.from.username}  with chat ID ${teleCtx.chat.id}`);
     let state = new popularState({
         lastSentMessageID: 0,
         popularSceneArray: [],
@@ -91,9 +93,17 @@ function popularEnter(teleCtx) {
 }
 
 function popularLeave(teleCtx) {
+    let userState = getState(teleCtx.chat.id);
+    let currentUserStateIndex = userState.state.currentIndex;
+    let currentUserStateArray = userState.state.popularSceneArray;
+    let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
+
+    teleCtx.telegram.editMessageText(teleCtx.chat.id, userState.state.lastSentMessageID, null, message);
+
     // remove the user from the state array
     removeStateForUser(teleCtx.chat.id);
     // debugging
+
     return teleCtx.reply('Exiting popular scene');
 }
 
