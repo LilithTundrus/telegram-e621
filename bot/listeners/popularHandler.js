@@ -77,7 +77,7 @@ async function getE621PopularContents(typeArg) {
 }
 
 function popularEnter(teleCtx) {
-    logger.debug(`Popular query started from ${teleCtx.message.from.username}`);
+    logger.debug(`Popular query started from ${teleCtx.message.from.username}  with chat ID ${ctx.chat.id}`);
     let state = new popularState({
         lastSentMessageID: 0,
         popularSceneArray: [],
