@@ -29,7 +29,7 @@ popularScene.command('monthly', (ctx) => popularSearchHandler(ctx, 'monthly'));
 popularScene.command('alltime', (ctx) => popularSearchHandler(ctx, 'alltime'));
 
 function popularSearchHandler(teleCtx, typeArg) {
-    let userState = getState(teleCtx.message.from.id);
+    let userState = getState(teleCtx.chat.id);
     return getE621PopularContents(typeArg)
         .then((response) => {                                   // returns a single page
             userState.state.popularSceneArray = response;
@@ -84,19 +84,15 @@ function popularEnter(teleCtx) {
         currentIndex: 0,
     })
     popularInstances.push({
-        id: teleCtx.message.from.id,
+        id: teleCtx.chat.id,
         state: state
     })
-    if (teleCtx.chat.type !== 'private') {
-        teleCtx.scene.leave();
-        return teleCtx.reply(`Please only PM this bot for now! Sorry`);
-    }
     return teleCtx.reply(`Available options: /daily, /weekly /monthly /alltime`, popularKeyboard)
 }
 
 function popularLeave(teleCtx) {
     // remove the user from the state array
-    removeStateForUser(teleCtx.message.from.id);
+    removeStateForUser(teleCtx.chat.id);
     // debugging
     return teleCtx.reply('Exiting popular scene');
 }
