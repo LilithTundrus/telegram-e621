@@ -27,14 +27,14 @@ const logger = new Logger();                                        // Create an
 //TODO: when allowing users to set a blacklist, ensure that the tags are valid
 //against a JSON DB table that contains all possible valid e621 tags
 //TODO: make everything a scene
-//TODO: fix the scenes not working when @ is used in groups or IN GROUPS AT ALL
+//TODO: improve group usability
 //TODO: improve user activity logging
 //TODO: improve limit settings/db calls
-//TODO: allow for page limit AND an items per page limit
+//TODO: allow for user defined page limit AND an items per page limit
 //TODO: allow a user to set a blacklist
 //TODO: allow user logins
 //TODO: get the bot to 'type' while loading requests
-
+//TODO: imprvoe the searcHandler and only allow for one search per command call (annoying bug fix)
 
 // Connect to the DB once throughout the while bot code
 db.connect();
@@ -49,6 +49,7 @@ bot.use(
     session(),
     // get the 'index.js' in the /bot/commands folder which contains listeners and handlers for commands
     require('./bot/commands'),
+    // do the same for non '/command' listeners
     require('./bot/listeners'),
     // Allow for attached .then() to a ctx.reply()
     (ctx, next) => {
