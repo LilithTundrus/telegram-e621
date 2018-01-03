@@ -115,12 +115,12 @@ function searchEnter(teleCtx) {
 }
 
 function searchLeave(teleCtx) {
-    // remove the user from the state array
     let userState = getState(teleCtx.chat.id);
     let currentUserStateIndex = userState.state.currentIndex;
     let currentUserStateArray = userState.state.searchSceneArray;
     let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
 
+    // remove the user from the state array
     teleCtx.telegram.editMessageText(teleCtx.chat.id, userState.state.lastSentMessageID, null, message);
 
     removeStateForUser(teleCtx.chat.id);
