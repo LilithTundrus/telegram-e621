@@ -40,10 +40,9 @@ searchScene.hears('😎 Popular', (ctx) => {
 searchScene.on('text', (ctx) => {
     let limitSetting = config.e621DefaultPageSize;
     let userState = getState(ctx.chat.id);
-    userState.state.rateLimit++;
-    logger.debug(`Current rate limit for ${ctx.chat.id}`)
     // only allow for ONE set of tags to be used per search command activation
-    if (userState.state.rateLimit <= 1) {
+    if (userState.state.rateLimit < 1) {
+        userState.state.rateLimit++;
         ctx.telegram.editMessageText(ctx.chat.id, userState.state.initialMessageID, null, 'Searching...');
         return ctx.db.getTelegramUserLimit(ctx.message.from.id)
             .then((userData) => {
@@ -66,7 +65,7 @@ searchScene.on('text', (ctx) => {
                     })
                     .catch((err) => {
                         logger.error(err)
-                        return ctx.reply(`Looks like I ran into a problem. If the issue persists contact ${config.devContactName}`);
+                        return ctx.reply(`Looks like I ran into a problem. If the issue persists please contact ${config.devContactName}`);
                     })
             })
     }
@@ -94,7 +93,10 @@ searchScene.action(/.+/, (ctx) => {
     } else if (ctx.match[0] == 'Exit') {
         return ctx.scene.leave();
     } else if (ctx.match[0] == 'Jump') {
-        return ctx.reply(`Not ready yet! Sorry.`)
+        return ctx.reply(`Not ready yet! Sorry.`);
+    } else {
+        logger.error(`Unsupported command in the search scene: ${ctx.match[0]}`);
+        return ctx.reply(`Looks like I got an unsupported button command. If the issue persists please contact ${config.devContactName}`);
     }
 })
 
