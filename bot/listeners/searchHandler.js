@@ -40,29 +40,34 @@ searchScene.hears('😎 Popular', (ctx) => {
 searchScene.on('text', (ctx) => {
     let limitSetting = config.e621DefaultPageSize;
     let userState = getState(ctx.chat.id);
-    return ctx.db.getTelegramUserLimit(ctx.message.from.id)
-        .then((userData) => {
-            return limitSetting = userData[0].setlimit;
-        })
-        .catch((err) => {
-            // there is no user with this ID, use defaults
-            return logger.debug(err);
-        })
-        .then(() => {
-            return getE621PageContents(ctx.message.text, limitSetting)
-                .then((response) => {
-                    userState.state.searchSceneArray = response;
-                    let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>\n❤️: ${response[0].fav_count}\nType: ${response[0].file_ext}`;
-                    return ctx.replyWithHTML(message, pagingKeyboard)
-                        .then((messageResult) => {
-                            userState.state.lastSentMessageID = messageResult.message_id;
-                        })
-                })
-                .catch((err) => {
-                    logger.error(err)
-                    return ctx.reply(`Looks like I ran into a problem. If the issue persists contact ${config.devContactName}`);
-                })
-        })
+    userState.state.rateLimit++;
+    // only allow for ONE set of tags to be used per search command activation
+    if (userState.state.rateLimit <= 1) {
+        return ctx.db.getTelegramUserLimit(ctx.message.from.id)
+            .then((userData) => {
+                return limitSetting = userData[0].setlimit;
+            })
+            .catch((err) => {
+                // there is no user with this ID, use defaults
+                return logger.debug(err);
+            })
+            .then(() => {
+                return getE621PageContents(ctx.message.text, limitSetting)
+                    .then((response) => {
+                        userState.state.searchSceneArray = response;
+                        let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>\n❤️: ${response[0].fav_count}\nType: ${response[0].file_ext}`;
+                        return ctx.replyWithHTML(message, pagingKeyboard)
+                            .then((messageResult) => {
+                                userState.state.lastSentMessageID = messageResult.message_id;
+                            })
+                    })
+                    .catch((err) => {
+                        logger.error(err)
+                        return ctx.reply(`Looks like I ran into a problem. If the issue persists contact ${config.devContactName}`);
+                    })
+            })
+    }
+
 });
 // This is listening for the callback buttons
 searchScene.action(/.+/, (ctx) => {
@@ -106,6 +111,7 @@ function searchEnter(teleCtx) {
         lastSentMessageID: 0,
         searchSceneArray: [],
         currentIndex: 0,
+        rateLimit: 0,
     })
     searchInstances.push({
         id: teleCtx.chat.id,
