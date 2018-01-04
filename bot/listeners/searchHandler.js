@@ -13,7 +13,6 @@ const { enter, leave } = Stage;
 const searchScene = new Scene('search');
 /*
 TODO: on text, ensure all tags are valid
-TODO: better error handle issues
 TODO: better support group chats
 */
 
@@ -120,8 +119,9 @@ async function getE621PageContents(tagsArg, limit) {
 
 function searchEnter(teleCtx) {
     logger.debug(`Search started from ${teleCtx.message.from.username} with chat ID ${teleCtx.chat.id}`);
-    // Determine if chat is private or group
-    logger.debug(teleCtx.chat.type)
+    // Determine if chat is private or group here!!
+    logger.debug(teleCtx.chat.type);
+
     let state = new searchState({
         lastSentMessageID: 0,
         initialMessageID: 0,
@@ -136,7 +136,7 @@ function searchEnter(teleCtx) {
     })
     return teleCtx.reply(`Give me some tags to search by and press enter. Use /back when you're done.`)
         .then((messageResult) => {
-            state.initialMessageID = messageResult.message_id;
+            return state.initialMessageID = messageResult.message_id;
         })
 }
 
@@ -149,7 +149,6 @@ function searchLeave(teleCtx) {
         teleCtx.telegram.editMessageText(teleCtx.chat.id, userState.state.lastSentMessageID, null, message);
     }
     // remove the user from the state array
-
     removeStateForUser(teleCtx.chat.id);
     // debugging
     return teleCtx.reply('Exiting search scene');
