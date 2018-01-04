@@ -33,5 +33,9 @@ composer.command('register', registerHandler);
 composer.command('limit', limitHandler);
 composer.command('search', enter('search'));
 composer.command('popular', enter('popular'));
+composer.command('removeMe', (ctx) => {
+    return ctx.db.removeTelegramUser(ctx.message.from.id)
+});
+
 
 module.exports = composer;
