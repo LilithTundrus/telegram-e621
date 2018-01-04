@@ -68,14 +68,31 @@ function getTelegramUserLimit(teleid) {
         var sql = `SELECT * FROM userdata WHERE teleid = '${teleid}'`;
         con.query(sql, function (err, result) {
             if (err) throw err;
-            logger.db(`Found ID in database: ${result[0].teleid}`);
             if (result.length < 1) {
                 return reject(`No user was found with the ID ${teleid}`);
+            } else {
+                logger.db(`Found ID in database: ${result[0].teleid}`);
+                return resolve(result);
             }
-            return resolve(result);
         });
     });
 }
+
+/**
+ * REMOVE a user from userdata by ID
+ * @param {Number} teleid 
+ * @returns {Void}
+ */
+function removeTelegramUser(teleid) {
+    return new Promise((resolve, reject) => {
+        var sql = `DELETE FROM userdata WHERE teleid = '${teleid}'`;
+        con.query(sql, function (err, result) {
+            if (err) throw err;
+            resolve(logger.db(`REMOVED user with ID ${teleid} from userdata`));
+        });
+    });
+}
+
 
 
 module.exports.connect = connect;
@@ -83,4 +100,5 @@ module.exports.createUserTable = createUserTable;
 module.exports.addTelegramUserLimit = addTelegramUserLimit;
 module.exports.updateTelegramUserLimit = updateTelegramUserLimit;
 module.exports.getTelegramUserLimit = getTelegramUserLimit;
+module.exports.removeTelegramUser = removeTelegramUser;
 module.exports.disconnect = disconnect;
