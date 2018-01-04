@@ -93,6 +93,8 @@ searchScene.action(/.+/, (ctx) => {
         }
     } else if (ctx.match[0] == 'Exit') {
         return ctx.scene.leave();
+    } else if (ctx.match[0] == 'Jump') {
+        return ctx.reply(`Not ready yet! Sorry.`)
     }
 })
 
