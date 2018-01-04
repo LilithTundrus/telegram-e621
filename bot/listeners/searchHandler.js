@@ -14,7 +14,7 @@ const searchScene = new Scene('search');
 /*
 TODO: on text, ensure all tags are valid
 TODO: better error handle issues
-TODO: support group chats
+TODO: better support group chats
 */
 
 // A really hacky way to store the state of this function per user
@@ -41,8 +41,10 @@ searchScene.on('text', (ctx) => {
     let limitSetting = config.e621DefaultPageSize;
     let userState = getState(ctx.chat.id);
     userState.state.rateLimit++;
+    logger.debug(`Current rate limit for ${ctx.chat.id}`)
     // only allow for ONE set of tags to be used per search command activation
     if (userState.state.rateLimit <= 1) {
+        ctx.telegram.editMessageText(ctx.chat.id, userState.state.initialMessageID, null, 'Searching...');
         return ctx.db.getTelegramUserLimit(ctx.message.from.id)
             .then((userData) => {
                 return limitSetting = userData[0].setlimit;
@@ -54,6 +56,7 @@ searchScene.on('text', (ctx) => {
             .then(() => {
                 return getE621PageContents(ctx.message.text, limitSetting)
                     .then((response) => {
+                        ctx.telegram.editMessageText(ctx.chat.id, userState.state.initialMessageID, null, 'Done!');
                         userState.state.searchSceneArray = response;
                         let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>\n❤️: ${response[0].fav_count}\nType: ${response[0].file_ext}`;
                         return ctx.replyWithHTML(message, pagingKeyboard)
@@ -67,7 +70,6 @@ searchScene.on('text', (ctx) => {
                     })
             })
     }
-
 });
 // This is listening for the callback buttons
 searchScene.action(/.+/, (ctx) => {
@@ -109,6 +111,7 @@ function searchEnter(teleCtx) {
     logger.debug(`Search started from ${teleCtx.message.from.username} with chat ID ${teleCtx.chat.id}`);
     let state = new searchState({
         lastSentMessageID: 0,
+        initialMessageID: 0,
         searchSceneArray: [],
         currentIndex: 0,
         rateLimit: 0,
@@ -117,7 +120,10 @@ function searchEnter(teleCtx) {
         id: teleCtx.chat.id,
         state: state
     })
-    return teleCtx.reply(`Give me some tags to search by. Use /back when you're done.`);
+    return teleCtx.reply(`Give me some tags to search by. Use /back when you're done.`)
+        .then((messageResult) => {
+            state.initialMessageID = messageResult.message_id;
+        })
 }
 
 function searchLeave(teleCtx) {
