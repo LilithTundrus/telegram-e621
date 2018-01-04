@@ -38,7 +38,7 @@ searchScene.hears('😎 Popular', (ctx) => {
     });
 });
 searchScene.on('text', (ctx) => {
-    let limitSetting = config.e621DefaultPageSize;
+    let limitSetting = config.e621DefualtLinkLimit;
     let userState = getState(ctx.chat.id);
     // only allow for ONE set of tags to be used per search command activation
     if (userState.state.rateLimit < 1) {
@@ -50,18 +50,25 @@ searchScene.on('text', (ctx) => {
             })
             .catch((err) => {
                 // there is no user with this ID, use defaults
-                return logger.debug(err);
+                return logger.db(err);
             })
             .then(() => {
                 return getE621PageContents(ctx.message.text, limitSetting)
                     .then((response) => {
-                        ctx.telegram.editMessageText(ctx.chat.id, userState.state.initialMessageID, null, 'Done!');
-                        userState.state.searchSceneArray = response;
-                        let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>\n❤️: ${response[0].fav_count}\nType: ${response[0].file_ext}`;
-                        return ctx.replyWithHTML(message, pagingKeyboard)
-                            .then((messageResult) => {
-                                userState.state.lastSentMessageID = messageResult.message_id;
-                            })
+                        if (response.length < 1) {
+                            return ctx.reply(`I couldn't find anything matching ${ctx.message.text}, make sure your tags are correct!`)
+                                .then(() => {
+                                    return ctx.scene.leave()
+                                })
+                        } else {
+                            ctx.telegram.editMessageText(ctx.chat.id, userState.state.initialMessageID, null, 'Done!');
+                            userState.state.searchSceneArray = response;
+                            let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>\n❤️: ${response[0].fav_count}\nType: ${response[0].file_ext}`;
+                            return ctx.replyWithHTML(message, pagingKeyboard)
+                                .then((messageResult) => {
+                                    userState.state.lastSentMessageID = messageResult.message_id;
+                                })
+                        }
                     })
                     .catch((err) => {
                         logger.error(err)
@@ -113,18 +120,21 @@ async function getE621PageContents(tagsArg, limit) {
 
 function searchEnter(teleCtx) {
     logger.debug(`Search started from ${teleCtx.message.from.username} with chat ID ${teleCtx.chat.id}`);
+    // Determine if chat is private or group
+    logger.debug(teleCtx.chat.type)
     let state = new searchState({
         lastSentMessageID: 0,
         initialMessageID: 0,
         searchSceneArray: [],
         currentIndex: 0,
         rateLimit: 0,
+        originalSender: teleCtx.message.from.id
     })
     searchInstances.push({
         id: teleCtx.chat.id,
         state: state
     })
-    return teleCtx.reply(`Give me some tags to search by. Use /back when you're done.`)
+    return teleCtx.reply(`Give me some tags to search by and press enter. Use /back when you're done.`)
         .then((messageResult) => {
             state.initialMessageID = messageResult.message_id;
         })
@@ -134,10 +144,11 @@ function searchLeave(teleCtx) {
     let userState = getState(teleCtx.chat.id);
     let currentUserStateIndex = userState.state.currentIndex;
     let currentUserStateArray = userState.state.searchSceneArray;
-    let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
-
+    if (currentUserStateArray.length > 0) {
+        let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
+        teleCtx.telegram.editMessageText(teleCtx.chat.id, userState.state.lastSentMessageID, null, message);
+    }
     // remove the user from the state array
-    teleCtx.telegram.editMessageText(teleCtx.chat.id, userState.state.lastSentMessageID, null, message);
 
     removeStateForUser(teleCtx.chat.id);
     // debugging
