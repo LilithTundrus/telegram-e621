@@ -35,6 +35,7 @@ const logger = new Logger();                                        // Create an
 //TODO: allow user logins
 //TODO: get the bot to 'type' while loading requests
 //TODO: imprvoe the searcHandler and only allow for one search per command call (annoying bug fix)
+//TODO: fix the issue when exiting scenes and editing the last sent message that the HTML markup doesn't stay
 
 // Connect to the DB once throughout the while bot code
 db.connect();
