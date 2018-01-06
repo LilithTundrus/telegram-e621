@@ -12,8 +12,8 @@ const pagingKeyboard = telegramKeyboards.pagingKeyboard;
 const { enter, leave } = Stage;
 const searchScene = new Scene('search');
 /*
-TODO: on text, ensure all tags are valid
-TODO: better support group chats
+TODO: rewrite to support group chats by individually saving users in a group so
+they each have individual instances
 */
 
 // A really hacky way to store the state of this function per user
@@ -38,7 +38,7 @@ searchScene.hears('😎 Popular', (ctx) => {
 });
 searchScene.on('text', (ctx) => {
     let limitSetting = config.e621DefualtLinkLimit;
-    let userState = getState(ctx.chat.id);
+    let userState = getState(ctx.message.from.id);
     // only allow for ONE set of tags to be used per search command activation
     if (userState.state.rateLimit < 1) {
         userState.state.rateLimit++;
@@ -78,7 +78,8 @@ searchScene.on('text', (ctx) => {
 });
 // This is listening for the callback buttons
 searchScene.action(/.+/, (ctx) => {
-    let userState = getState(ctx.chat.id)
+    logger.debug(JSON.stringify(ctx.callbackQuery.from.id))
+    let userState = getState(ctx.callbackQuery.from.id)
     if (ctx.match[0] == 'Next') {
         if (userState.state.currentIndex !== userState.state.searchSceneArray.length - 1) {
             userState.state.currentIndex++;
@@ -121,14 +122,20 @@ function searchEnter(teleCtx) {
     logger.debug(`Search started from ${teleCtx.message.from.username} with chat ID ${teleCtx.chat.id}`);
     // Determine if chat is private or group here!!
     logger.debug(teleCtx.chat.type);
-
+    logger.debug(getState(teleCtx.message.from.id))
+    if (getState(teleCtx.message.from.id) == 'undefined') {
+        logger.debug(`User is already in the array...removing`)
+        searchLeave(teleCtx);
+        //removeStateForUser(teleCtx.message.from.id);
+    }
     let state = new searchState({
         lastSentMessageID: 0,
         initialMessageID: 0,
         searchSceneArray: [],
         currentIndex: 0,
         rateLimit: 0,
-        originalSender: teleCtx.message.from.id
+        originalSender: teleCtx.message.from.id,
+        chatID: teleCtx.chat.id
     })
     searchInstances.push({
         id: teleCtx.chat.id,
@@ -141,7 +148,7 @@ function searchEnter(teleCtx) {
 }
 
 function searchLeave(teleCtx) {
-    let userState = getState(teleCtx.chat.id);
+    let userState = getState(teleCtx.callbackQuery.from.id);
     let currentUserStateIndex = userState.state.currentIndex;
     let currentUserStateArray = userState.state.searchSceneArray;
     if (currentUserStateArray.length > 0) {
@@ -154,11 +161,11 @@ function searchLeave(teleCtx) {
     return teleCtx.reply('Exiting search scene');
 }
 
-function getState(teleID) {
+function getState(teleID, chatID) {
     // handle the state of a user's interaction with the search scene
     let entryToReturn;
     searchInstances.forEach((entry, index) => {
-        if (entry.id == teleID) {
+        if (entry.state.originalSender == teleID) {
             return entryToReturn = entry;
         }
     });
