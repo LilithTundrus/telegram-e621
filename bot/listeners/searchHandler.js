@@ -38,11 +38,10 @@ searchScene.on('text', (ctx) => {
     let limitSetting = config.e621DefualtLinkLimit;
     let userState = getSearchStateForUser(ctx.chat.id, ctx.message.from.id);
     logger.debug(JSON.stringify(userState, null, 2));
-    /*
     // only allow for ONE set of tags to be used per search command activation
-    if (userState.state.rateLimit < 1) {
-        userState.state.rateLimit++;
-        ctx.telegram.editMessageText(ctx.chat.id, userState.state.initialMessageID, null, 'Searching...');
+    if (userState.rateLimit < 1) {
+        userState.rateLimit++;
+        ctx.telegram.editMessageText(ctx.chat.id, userState.initialMessageID, null, 'Searching...');
         return ctx.db.getTelegramUserLimit(ctx.message.from.id)
             .then((userData) => {
                 return limitSetting = userData[0].setlimit;
@@ -60,12 +59,12 @@ searchScene.on('text', (ctx) => {
                                     return ctx.scene.leave()
                                 })
                         } else {
-                            ctx.telegram.editMessageText(ctx.chat.id, userState.state.initialMessageID, null, 'Done!');
-                            userState.state.searchSceneArray = response;
+                            ctx.telegram.editMessageText(ctx.chat.id, userState.initialMessageID, null, 'Done!');
+                            userState.searchSceneArray = response;
                             let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>\n❤️: ${response[0].fav_count}\nType: ${response[0].file_ext}`;
                             return ctx.replyWithHTML(message, pagingKeyboard)
                                 .then((messageResult) => {
-                                    userState.state.lastSentMessageID = messageResult.message_id;
+                                    userState.lastSentMessageID = messageResult.message_id;
                                 })
                         }
                     })
@@ -75,28 +74,27 @@ searchScene.on('text', (ctx) => {
                     })
             })
     }
-    */
 });
 // This is listening for the callback buttons
 searchScene.action(/.+/, (ctx) => {
     logger.debug(JSON.stringify(ctx.callbackQuery.from.id))
-    let userState = getState(ctx.callbackQuery.from.id)
+    let userState = getSearchStateForUser(ctx.chat.id, ctx.callbackQuery.from.id)
     if (ctx.match[0] == 'Next') {
-        if (userState.state.currentIndex !== userState.state.searchSceneArray.length - 1) {
-            userState.state.currentIndex++;
-            let currentUserStateIndex = userState.state.currentIndex;
-            let currentUserStateArray = userState.state.searchSceneArray;
-            let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
-            return ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, message, pagingKeyboard)
+        if (userState.currentIndex !== userState.searchSceneArray.length - 1) {
+            userState.currentIndex++;
+            let currentUserStateIndex = userState.currentIndex;
+            let currentUserStateArray = userState.searchSceneArray;
+            let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
+            return ctx.telegram.editMessageText(ctx.chat.id, userState.lastSentMessageID, null, message, pagingKeyboard)
         }
         return ctx.reply(`That's the last image. if you want to adjust your limit use the /limit command or the settings keyboard command`);
     } else if (ctx.match[0] == 'Previous') {
-        if (userState.state.currentIndex !== 0) {
-            userState.state.currentIndex--;
-            let currentUserStateIndex = userState.state.currentIndex;
-            let currentUserStateArray = userState.state.searchSceneArray;
-            let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
-            ctx.telegram.editMessageText(ctx.chat.id, userState.state.lastSentMessageID, null, message, pagingKeyboard);
+        if (userState.currentIndex !== 0) {
+            userState.currentIndex--;
+            let currentUserStateIndex = userState.currentIndex;
+            let currentUserStateArray = userState.searchSceneArray;
+            let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
+            ctx.telegram.editMessageText(ctx.chat.id, userState.lastSentMessageID, null, message, pagingKeyboard);
         }
     } else if (ctx.match[0] == 'Exit') {
         return ctx.scene.leave();
@@ -130,33 +128,41 @@ function searchEnter(teleCtx) {
     options.originalSender = teleCtx.message.from.id
     teleCtx.reply(`Give me some tags to search by and press enter. Use /back when you're done.`)
         .then((messageResult) => {
-            return options.initialMessageID = messageResult.message_id;
+            options.initialMessageID = messageResult.message_id;
+            logger.debug(options.initialMessageID)
         })
-    // Create separate classes for both types and handle any uknowns
-    if (teleCtx.chat.type == 'private') {
-        logger.debug('Chat is private!');
-        // set options for Obj
-        options.chatID = teleCtx.chat.id;
-        // create new private Obj
-        let searchState = new searchStatePM(options);
-        searchInstancesPM.push(searchState);
-    } else if (teleCtx.chat.type == 'group') {
-        logger.debug('Chat is a group!');
-        // set options for Obj
-        options.groupID = teleCtx.chat.id;
-        // create new group Obj
-        let searchState = new searchStateGroup(options);
-        searchInstancesGroup.push(searchState);
-    } else {
-        logger.warn(`Unsupported chat type: ${teleCtx.chat.type}`);
-        return teleCtx.reply(`Please only PM this bot or add it to a group. Chat type '${teleCtx.chat.type}' is not supported.`);
-    }
+        .then(() => {
+            // Create separate classes for both types and handle any uknowns
+            if (teleCtx.chat.type == 'private') {
+                logger.debug('Chat is private!');
+                // set options for Obj
+                options.chatID = teleCtx.chat.id;
+                // create new private Obj
+                let searchState = new searchStatePM(options);
+                searchInstancesPM.push(searchState);
+            } else if (teleCtx.chat.type == 'group') {
+                logger.debug('Chat is a group!');
+                // set options for Obj
+                options.groupID = teleCtx.chat.id;
+                // create new group Obj
+                let searchState = new searchStateGroup(options);
+                searchInstancesGroup.push(searchState);
+            } else {
+                logger.warn(`Unsupported chat type: ${teleCtx.chat.type}`);
+                return teleCtx.reply(`Please only PM this bot or add it to a group. Chat type '${teleCtx.chat.type}' is not supported.`);
+            }
+        })
+
 
 }
 
 function searchLeave(teleCtx) {
     //make sure all of these are defined first!!
-    removeStateForUser(teleCtx.chat.id, teleCtx.message.from.id, teleCtx.chat.type);
+    if (!teleCtx.message) {
+        removeStateForUser(teleCtx.chat.id, teleCtx.callbackQuery.from.id, teleCtx.chat.type);
+    } else {
+        removeStateForUser(teleCtx.chat.id, teleCtx.message.from.id, teleCtx.chat.type);
+    }
     return teleCtx.reply('Exiting search scene');
 }
 
