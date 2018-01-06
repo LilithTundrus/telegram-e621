@@ -4,20 +4,18 @@ const logger = new Logger();                                        // Create an
 const Scene = require('telegraf/scenes/base');
 const Stage = require('telegraf/stage');
 const config = require('../../config/config');
-const searchState = require('../../lib/searchStateClass');
+const searchStatePM = require('../../lib/searchStateClassPM');
+const searchStateGroup = require('../../lib/searchStateClassGroup');
 const e621Helper = require('../../lib/e621HelperClass.js');         // E621 API helper class
 const wrapper = new e621Helper();                                   // Create an instance of the API wrapper to use
 const telegramKeyboards = require('../../lib/keyboardConsts');
 const pagingKeyboard = telegramKeyboards.pagingKeyboard;
 const { enter, leave } = Stage;
 const searchScene = new Scene('search');
-/*
-TODO: rewrite to support group chats by individually saving users in a group so
-they each have individual instances
-*/
 
 // A really hacky way to store the state of this function per user
-let searchInstances = [];
+let searchInstancesPM = [];
+let searchInstancesGroup = [];
 
 searchScene.enter((ctx) => {
     searchEnter(ctx);
@@ -38,7 +36,9 @@ searchScene.hears('😎 Popular', (ctx) => {
 });
 searchScene.on('text', (ctx) => {
     let limitSetting = config.e621DefualtLinkLimit;
-    let userState = getState(ctx.message.from.id);
+    let userState = getSearchStateForUser(ctx.chat.id, ctx.message.from.id);
+    logger.debug(JSON.stringify(userState, null, 2));
+    /*
     // only allow for ONE set of tags to be used per search command activation
     if (userState.state.rateLimit < 1) {
         userState.state.rateLimit++;
@@ -75,6 +75,7 @@ searchScene.on('text', (ctx) => {
                     })
             })
     }
+    */
 });
 // This is listening for the callback buttons
 searchScene.action(/.+/, (ctx) => {
@@ -120,67 +121,83 @@ async function getE621PageContents(tagsArg, limit) {
 
 function searchEnter(teleCtx) {
     logger.debug(`Search started from ${teleCtx.message.from.username} with chat ID ${teleCtx.chat.id}`);
-    // Determine if chat is private or group here!!
-    logger.debug(teleCtx.chat.type);
-    logger.debug(getState(teleCtx.message.from.id))
-    if (getState(teleCtx.message.from.id) == 'undefined') {
-        logger.debug(`User is already in the array...removing`)
-        searchLeave(teleCtx);
-        //removeStateForUser(teleCtx.message.from.id);
-    }
-    let state = new searchState({
-        lastSentMessageID: 0,
-        initialMessageID: 0,
-        searchSceneArray: [],
-        currentIndex: 0,
-        rateLimit: 0,
-        originalSender: teleCtx.message.from.id,
-        chatID: teleCtx.chat.id
-    })
-    searchInstances.push({
-        id: teleCtx.chat.id,
-        state: state
-    })
-    return teleCtx.reply(`Give me some tags to search by and press enter. Use /back when you're done.`)
+    let options = {};
+    // load in a few defaults that aren't group or PM unique
+    options.lastSentMessageID = 0;
+    options.searchSceneArray = [];
+    options.currentIndex = 0;
+    options.rateLimit = 0;
+    options.originalSender = teleCtx.message.from.id
+    teleCtx.reply(`Give me some tags to search by and press enter. Use /back when you're done.`)
         .then((messageResult) => {
-            return state.initialMessageID = messageResult.message_id;
+            return options.initialMessageID = messageResult.message_id;
         })
+    // Create separate classes for both types and handle any uknowns
+    if (teleCtx.chat.type == 'private') {
+        logger.debug('Chat is private!');
+        // set options for Obj
+        options.chatID = teleCtx.chat.id;
+        // create new private Obj
+        let searchState = new searchStatePM(options);
+        searchInstancesPM.push(searchState);
+    } else if (teleCtx.chat.type == 'group') {
+        logger.debug('Chat is a group!');
+        // set options for Obj
+        options.groupID = teleCtx.chat.id;
+        // create new group Obj
+        let searchState = new searchStateGroup(options);
+        searchInstancesGroup.push(searchState);
+    } else {
+        logger.warn(`Unsupported chat type: ${teleCtx.chat.type}`);
+        return teleCtx.reply(`Please only PM this bot or add it to a group. Chat type '${teleCtx.chat.type}' is not supported.`);
+    }
+
 }
 
 function searchLeave(teleCtx) {
-    let userState = getState(teleCtx.callbackQuery.from.id);
-    let currentUserStateIndex = userState.state.currentIndex;
-    let currentUserStateArray = userState.state.searchSceneArray;
-    if (currentUserStateArray.length > 0) {
-        let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
-        teleCtx.telegram.editMessageText(teleCtx.chat.id, userState.state.lastSentMessageID, null, message);
-    }
-    // remove the user from the state array
-    removeStateForUser(teleCtx.chat.id);
-    // debugging
+    //make sure all of these are defined first!!
+    removeStateForUser(teleCtx.chat.id, teleCtx.message.from.id, teleCtx.chat.type);
     return teleCtx.reply('Exiting search scene');
 }
 
-function getState(teleID, chatID) {
-    // handle the state of a user's interaction with the search scene
+function getSearchStateForUser(groupID, userID) {
+    // return the current state of the search command for a specific user by the chat ID and the user name
     let entryToReturn;
-    searchInstances.forEach((entry, index) => {
-        if (entry.state.originalSender == teleID) {
+    searchInstancesPM.forEach((entry, index) => {
+        if (entry.originalSender == userID && entry.chatID == groupID) {
+            logger.debug('Match!!');
             return entryToReturn = entry;
         }
     });
-    // if an object matching the ID exists, return the object, if not return a new one for the ID!
+    searchInstancesGroup.forEach((entry, index) => {
+        if (entry.originalSender == userID && entry.groupID == groupID) {
+            logger.debug('Match!!');
+            return entryToReturn = entry;
+        }
+    });
+    // if an object matching the ID exists, return the object
     return entryToReturn;
 }
 
-function removeStateForUser(teleID) {
-    for (var i = searchInstances.length - 1; i >= 0; --i) {
-        if (searchInstances[i].id == teleID) {
-            searchInstances.splice(i, 1);
+function removeStateForUser(groupID, userID, type) {
+    if (type == 'private') {
+        for (var i = searchInstancesPM.length - 1; i >= 0; --i) {
+            if (searchInstancesPM[i].originalSender == userID && searchInstancesPM[i].chatID == groupID) {
+                searchInstancesPM.splice(i, 1);
+                logger.debug(`Removing user with ID: ${userID} from searchInstancesPM`);
+                logger.debug(searchInstancesPM.length);
+            }
+        }
+    } else if (type == 'group') {
+        for (var i = searchInstancesGroup.length - 1; i >= 0; --i) {
+            if (searchInstancesGroup[i].originalSender == userID && searchInstancesGroup[i].groupID == groupID) {
+                searchInstancesGroup.splice(i, 1);
+                logger.debug(`Removing user with ID: ${userID} from searchInstancesGroup`);
+                logger.debug(searchInstancesGroup.length);
+            }
         }
     }
-    logger.debug(`Removing user with ID: ${teleID} from searchInstances`);
-    logger.debug(searchInstances.length);
+
 }
 
 // Export the scene as the user-facing code. All internal functions cannot be used directly
