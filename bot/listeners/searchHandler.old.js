@@ -12,13 +12,12 @@ const pagingKeyboard = telegramKeyboards.pagingKeyboard;
 const { enter, leave } = Stage;
 const searchScene = new Scene('search');
 /*
-TODO: The main thing is groups and PMs tend to not mix... it's
-likely going to be easiest to add things to the user's state for groups
+TODO: rewrite to support group chats by individually saving users in a group so
+they each have individual instances
 */
 
 // A really hacky way to store the state of this function per user
-let searchInstancesPM = [];
-let searchInstancesGroup = [];
+let searchInstances = [];
 
 searchScene.enter((ctx) => {
     searchEnter(ctx);
@@ -122,29 +121,66 @@ async function getE621PageContents(tagsArg, limit) {
 function searchEnter(teleCtx) {
     logger.debug(`Search started from ${teleCtx.message.from.username} with chat ID ${teleCtx.chat.id}`);
     // Determine if chat is private or group here!!
-    // Create separate classes for both types and handle any uknowns
     logger.debug(teleCtx.chat.type);
-    let options = {};
-    if (teleCtx.chat.type == 'private') {
-        logger.debug('Chat is private!');
-    } else if (teleCtx.chat.type == 'group') {
-        logger.debug('Chat is a group!');
-    } else {
-        logger.warn(`Unsupported chat type: ${teleCtx.chat.type}`);
-        return teleCtx.reply(`Please only PM this bot or add it to a group. Chat type '${teleCtx.chat.type}' is not supported.`);
+    logger.debug(getState(teleCtx.message.from.id))
+    if (getState(teleCtx.message.from.id) !== undefined) {
+        logger.debug(`User is already in the array...removing`)
+        searchLeave(teleCtx);
+        //removeStateForUser(teleCtx.message.from.id);
     }
+    let state = new searchState({
+        lastSentMessageID: 0,
+        initialMessageID: 0,
+        searchSceneArray: [],
+        currentIndex: 0,
+        rateLimit: 0,
+        originalSender: teleCtx.message.from.id,
+        chatID: teleCtx.chat.id
+    })
+    searchInstances.push({
+        id: teleCtx.chat.id,
+        state: state
+    })
     return teleCtx.reply(`Give me some tags to search by and press enter. Use /back when you're done.`)
         .then((messageResult) => {
-            //return state.initialMessageID = messageResult.message_id;
+            return state.initialMessageID = messageResult.message_id;
         })
 }
 
 function searchLeave(teleCtx) {
+    let userState = getState(teleCtx.callbackQuery.from.id);
+    let currentUserStateIndex = userState.state.currentIndex;
+    let currentUserStateArray = userState.state.searchSceneArray;
+    if (currentUserStateArray.length > 0) {
+        let message = `Post ${userState.state.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
+        teleCtx.telegram.editMessageText(teleCtx.chat.id, userState.state.lastSentMessageID, null, message);
+    }
+    // remove the user from the state array
+    removeStateForUser(teleCtx.chat.id);
+    // debugging
     return teleCtx.reply('Exiting search scene');
 }
 
-function getSearchStateForUser(groupID, userID) {
-    // return the current state of the search command for a specific user by the chat ID and the user name
+function getState(teleID, chatID) {
+    // handle the state of a user's interaction with the search scene
+    let entryToReturn;
+    searchInstances.forEach((entry, index) => {
+        if (entry.state.originalSender == teleID) {
+            return entryToReturn = entry;
+        }
+    });
+    // if an object matching the ID exists, return the object
+    return entryToReturn;
+}
+
+function removeStateForUser(teleID) {
+    for (var i = searchInstances.length - 1; i >= 0; --i) {
+        if (searchInstances[i].id == teleID) {
+            searchInstances.splice(i, 1);
+        }
+    }
+    logger.debug(`Removing user with ID: ${teleID} from searchInstances`);
+    logger.debug(searchInstances.length);
 }
 
 // Export the scene as the user-facing code. All internal functions cannot be used directly
