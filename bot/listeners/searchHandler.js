@@ -25,12 +25,12 @@ searchScene.leave((ctx) => {
 });
 searchScene.command('back', leave());
 searchScene.hears('🔍 Search', (ctx) => {
-    ctx.scene.leave().then(() => {
+    return ctx.scene.leave().then(() => {
         return ctx.scene.enter('search');
     });
 });
 searchScene.hears('😎 Popular', (ctx) => {
-    ctx.scene.leave().then(() => {
+    return ctx.scene.leave().then(() => {
         return ctx.scene.enter('popular');
     });
 });
@@ -56,7 +56,7 @@ searchScene.on('text', (ctx) => {
                         if (response.length < 1) {
                             return ctx.reply(`I couldn't find anything matching ${ctx.message.text}, make sure your tags are correct!`)
                                 .then(() => {
-                                    return ctx.scene.leave()
+                                    return ctx.scene.leave();
                                 })
                         } else {
                             ctx.telegram.editMessageText(ctx.chat.id, userState.initialMessageID, null, 'Done!');
@@ -79,30 +79,36 @@ searchScene.on('text', (ctx) => {
 searchScene.action(/.+/, (ctx) => {
     logger.debug(JSON.stringify(ctx.callbackQuery.from.id))
     let userState = getSearchStateForUser(ctx.chat.id, ctx.callbackQuery.from.id)
-    if (ctx.match[0] == 'Next') {
-        if (userState.currentIndex !== userState.searchSceneArray.length - 1) {
-            userState.currentIndex++;
-            let currentUserStateIndex = userState.currentIndex;
-            let currentUserStateArray = userState.searchSceneArray;
-            let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
-            return ctx.telegram.editMessageText(ctx.chat.id, userState.lastSentMessageID, null, message, pagingKeyboard)
+    try {
+        if (ctx.match[0] == 'Next') {
+            if (userState.currentIndex !== userState.searchSceneArray.length - 1) {
+                userState.currentIndex++;
+                let currentUserStateIndex = userState.currentIndex;
+                let currentUserStateArray = userState.searchSceneArray;
+                let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
+                return ctx.telegram.editMessageText(ctx.chat.id, userState.lastSentMessageID, null, message, pagingKeyboard)
+            }
+            return ctx.reply(`That's the last image. if you want to adjust your limit use the /limit command or the settings keyboard command`);
+        } else if (ctx.match[0] == 'Previous') {
+            if (userState.currentIndex !== 0) {
+                userState.currentIndex--;
+                let currentUserStateIndex = userState.currentIndex;
+                let currentUserStateArray = userState.searchSceneArray;
+                let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
+                ctx.telegram.editMessageText(ctx.chat.id, userState.lastSentMessageID, null, message, pagingKeyboard);
+            }
+        } else if (ctx.match[0] == 'Exit') {
+            return ctx.scene.leave();
+        } else if (ctx.match[0] == 'Jump') {
+            return ctx.reply(`Not ready yet! Sorry.`);
+        } else {
+            logger.error(`Unsupported command in the search scene: ${ctx.match[0]}`);
+            return ctx.reply(`Looks like I got an unsupported button command. If the issue persists please contact ${config.devContactName}`);
         }
-        return ctx.reply(`That's the last image. if you want to adjust your limit use the /limit command or the settings keyboard command`);
-    } else if (ctx.match[0] == 'Previous') {
-        if (userState.currentIndex !== 0) {
-            userState.currentIndex--;
-            let currentUserStateIndex = userState.currentIndex;
-            let currentUserStateArray = userState.searchSceneArray;
-            let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
-            ctx.telegram.editMessageText(ctx.chat.id, userState.lastSentMessageID, null, message, pagingKeyboard);
-        }
-    } else if (ctx.match[0] == 'Exit') {
-        return ctx.scene.leave();
-    } else if (ctx.match[0] == 'Jump') {
-        return ctx.reply(`Not ready yet! Sorry.`);
-    } else {
-        logger.error(`Unsupported command in the search scene: ${ctx.match[0]}`);
-        return ctx.reply(`Looks like I got an unsupported button command. If the issue persists please contact ${config.devContactName}`);
+    }
+    catch (err) {
+        ctx.scene.leave();
+        return errHandler(ctx, err);
     }
 })
 
@@ -159,6 +165,13 @@ function searchEnter(teleCtx) {
 function searchLeave(teleCtx) {
     //make sure all of these are defined first!!
     if (!teleCtx.message) {
+        let userState = getSearchStateForUser(teleCtx.chat.id, teleCtx.callbackQuery.from.id);
+        let currentUserStateIndex = userState.currentIndex;
+        let currentUserStateArray = userState.searchSceneArray;
+        if (currentUserStateArray.length > 0) {
+            let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
+            teleCtx.telegram.editMessageText(teleCtx.chat.id, userState.lastSentMessageID, null, message);
+        }
         removeStateForUser(teleCtx.chat.id, teleCtx.callbackQuery.from.id, teleCtx.chat.type);
     } else {
         removeStateForUser(teleCtx.chat.id, teleCtx.message.from.id, teleCtx.chat.type);
@@ -171,13 +184,11 @@ function getSearchStateForUser(groupID, userID) {
     let entryToReturn;
     searchInstancesPM.forEach((entry, index) => {
         if (entry.originalSender == userID && entry.chatID == groupID) {
-            logger.debug('Match!!');
             return entryToReturn = entry;
         }
     });
     searchInstancesGroup.forEach((entry, index) => {
         if (entry.originalSender == userID && entry.groupID == groupID) {
-            logger.debug('Match!!');
             return entryToReturn = entry;
         }
     });
@@ -186,24 +197,30 @@ function getSearchStateForUser(groupID, userID) {
 }
 
 function removeStateForUser(groupID, userID, type) {
-    if (type == 'private') {
-        for (var i = searchInstancesPM.length - 1; i >= 0; --i) {
-            if (searchInstancesPM[i].originalSender == userID && searchInstancesPM[i].chatID == groupID) {
-                searchInstancesPM.splice(i, 1);
-                logger.debug(`Removing user with ID: ${userID} from searchInstancesPM`);
-                logger.debug(searchInstancesPM.length);
+    return new Promise((resolve, reject) => {
+        if (type == 'private') {
+            for (var i = searchInstancesPM.length - 1; i >= 0; --i) {
+                if (searchInstancesPM[i].originalSender == userID && searchInstancesPM[i].chatID == groupID) {
+                    searchInstancesPM.splice(i, 1);
+                    logger.debug(searchInstancesPM.length);
+                    return resolve(logger.debug(`Removing user with ID: ${userID} from searchInstancesPM`));
+                }
+            }
+        } else if (type == 'group') {
+            for (var i = searchInstancesGroup.length - 1; i >= 0; --i) {
+                if (searchInstancesGroup[i].originalSender == userID && searchInstancesGroup[i].groupID == groupID) {
+                    searchInstancesGroup.splice(i, 1);
+                    logger.debug(searchInstancesGroup.length);
+                    return resolve(logger.debug(`Removing user with ID: ${userID} from searchInstancesGroup`));
+                }
             }
         }
-    } else if (type == 'group') {
-        for (var i = searchInstancesGroup.length - 1; i >= 0; --i) {
-            if (searchInstancesGroup[i].originalSender == userID && searchInstancesGroup[i].groupID == groupID) {
-                searchInstancesGroup.splice(i, 1);
-                logger.debug(`Removing user with ID: ${userID} from searchInstancesGroup`);
-                logger.debug(searchInstancesGroup.length);
-            }
-        }
-    }
+    })
+}
 
+function errHandler(ctx, err) {
+    logger.error(err);
+    return ctx.reply(`Sorry, looks like something went wrong. `)
 }
 
 // Export the scene as the user-facing code. All internal functions cannot be used directly
