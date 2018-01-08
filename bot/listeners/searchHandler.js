@@ -76,7 +76,10 @@ searchScene.on('text', (ctx) => {
 });
 // This is listening for the callback buttons
 searchScene.action(/.+/, async (ctx) => {
-    let userState = getSearchStateForUser(ctx.chat.id, ctx.callbackQuery.from.id)
+    let userState = await getSearchStateForUser(ctx.chat.id, ctx.callbackQuery.from.id);
+    if (!userState) {
+        return errHandler(ctx, `userState was not found for ${ctx.chat.id}, ${ctx.callbackQuery.from.id} at searchcene.action`)
+    }
     try {
         if (ctx.match[0] == 'Next') {
             if (userState.currentIndex !== userState.searchSceneArray.length - 1) {
@@ -180,7 +183,7 @@ function searchLeave(teleCtx) {
 
 function getSearchStateForUser(groupID, userID) {
     // return the current state of the search command for a specific user by the chat ID and the user name
-    let entryToReturn;
+    let entryToReturn = {};
     searchInstancesPM.forEach((entry, index) => {
         if (entry.originalSender == userID && entry.chatID == groupID) {
             return entryToReturn = entry;
