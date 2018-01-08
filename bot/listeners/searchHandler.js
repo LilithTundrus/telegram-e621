@@ -37,7 +37,6 @@ searchScene.hears('😎 Popular', (ctx) => {
 searchScene.on('text', (ctx) => {
     let limitSetting = config.e621DefualtLinkLimit;
     let userState = getSearchStateForUser(ctx.chat.id, ctx.message.from.id);
-    logger.debug(JSON.stringify(userState, null, 2));
     // only allow for ONE set of tags to be used per search command activation
     if (userState.rateLimit < 1) {
         userState.rateLimit++;
@@ -61,7 +60,7 @@ searchScene.on('text', (ctx) => {
                         } else {
                             ctx.telegram.editMessageText(ctx.chat.id, userState.initialMessageID, null, 'Done!');
                             userState.searchSceneArray = response;
-                            let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>\n❤️: ${response[0].fav_count}\nType: ${response[0].file_ext}`;
+                            let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>\n❤️: ${response[0].fav_count}\nType: ${response[0].file_ext}\nDescription: ${response[0].description}`;
                             return ctx.replyWithHTML(message, pagingKeyboard)
                                 .then((messageResult) => {
                                     userState.lastSentMessageID = messageResult.message_id;
@@ -76,8 +75,7 @@ searchScene.on('text', (ctx) => {
     }
 });
 // This is listening for the callback buttons
-searchScene.action(/.+/, (ctx) => {
-    logger.debug(JSON.stringify(ctx.callbackQuery.from.id))
+searchScene.action(/.+/, async (ctx) => {
     let userState = getSearchStateForUser(ctx.chat.id, ctx.callbackQuery.from.id)
     try {
         if (ctx.match[0] == 'Next') {
@@ -85,17 +83,18 @@ searchScene.action(/.+/, (ctx) => {
                 userState.currentIndex++;
                 let currentUserStateIndex = userState.currentIndex;
                 let currentUserStateArray = userState.searchSceneArray;
-                let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
-                return ctx.telegram.editMessageText(ctx.chat.id, userState.lastSentMessageID, null, message, pagingKeyboard)
+                let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}\nDescription: ${currentUserStateArray[currentUserStateIndex].description}`;
+                await ctx.telegram.editMessageText(ctx.chat.id, userState.lastSentMessageID, null, message, pagingKeyboard)
+            } else {
+                return ctx.reply(`That's the last image. if you want to adjust your limit use the /limit command or the settings keyboard command`);
             }
-            return ctx.reply(`That's the last image. if you want to adjust your limit use the /limit command or the settings keyboard command`);
         } else if (ctx.match[0] == 'Previous') {
             if (userState.currentIndex !== 0) {
                 userState.currentIndex--;
                 let currentUserStateIndex = userState.currentIndex;
                 let currentUserStateArray = userState.searchSceneArray;
-                let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
-                ctx.telegram.editMessageText(ctx.chat.id, userState.lastSentMessageID, null, message, pagingKeyboard);
+                let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}\nDescription: ${currentUserStateArray[currentUserStateIndex].description}`;
+                await ctx.telegram.editMessageText(ctx.chat.id, userState.lastSentMessageID, null, message, pagingKeyboard);
             }
         } else if (ctx.match[0] == 'Exit') {
             return ctx.scene.leave();
@@ -132,10 +131,9 @@ function searchEnter(teleCtx) {
     options.currentIndex = 0;
     options.rateLimit = 0;
     options.originalSender = teleCtx.message.from.id
-    teleCtx.reply(`Give me some tags to search by and press enter. Use /back when you're done.`)
+    return teleCtx.reply(`Give me some tags to search by and press enter. Use /back when you're done.`)
         .then((messageResult) => {
             options.initialMessageID = messageResult.message_id;
-            logger.debug(options.initialMessageID)
         })
         .then(() => {
             // Create separate classes for both types and handle any uknowns
@@ -158,8 +156,9 @@ function searchEnter(teleCtx) {
                 return teleCtx.reply(`Please only PM this bot or add it to a group. Chat type '${teleCtx.chat.type}' is not supported.`);
             }
         })
+        .then(() => {
 
-
+        })
 }
 
 function searchLeave(teleCtx) {
@@ -220,7 +219,7 @@ function removeStateForUser(groupID, userID, type) {
 
 function errHandler(ctx, err) {
     logger.error(err);
-    return ctx.reply(`Sorry, looks like something went wrong. `)
+    return ctx.reply(`Sorry, looks like something went wrong.`);
 }
 
 // Export the scene as the user-facing code. All internal functions cannot be used directly
