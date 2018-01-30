@@ -34,11 +34,14 @@ const logger = new Logger();                                        // Create an
 //TODO: allow a user to set a blacklist
 //TODO: allow user logins
 //TODO: get the bot to 'type' while loading requests
-//TODO: imprvoe the searcHandler and only allow for one search per command call (annoying bug fix)
 //TODO: fix the issue when exiting scenes and editing the last sent message that the HTML markup doesn't stay
+//TODO: Allow for parts of the bot to be enabled/disabled by modules (module.enable/disable) for easy debugging and isolation
 
 // Connect to the DB once throughout the while bot code
 db.connect();
+
+// Uncomment this if the DB has been destroyed
+// db.createUserTable();
 
 // Get the name of the bot and assign it to bot options
 bot.telegram.getMe().then((botInfo) => {
