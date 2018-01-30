@@ -35,6 +35,7 @@
     "ratelimiter": "^3.0.3",
     "request": "^2.83.0",
     "request-promise": "^4.2.2",
-    "telegraf": "^3.17.2"
+    "telegraf": "^3.17.2",
+    "telegraf-ratelimit": "^2.0.0"
   }
 }
