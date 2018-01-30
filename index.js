@@ -51,8 +51,8 @@ bot.telegram.getMe().then((botInfo) => {
 
 // Set limit to 1 message per 3 seconds
 const limitConfig = {
-    window: 5000,
-    limit: 1,
+    window: 3000,
+    limit: 3,
     onLimitExceeded: ((ctx, next) => {
         logger.warn(`${ctx.message.from.username} exceeded the rate limit.`);
         ctx.reply('Rate limit exceeded. This instance will be reported.');
