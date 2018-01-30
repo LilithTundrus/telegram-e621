@@ -37,7 +37,7 @@ const logger = new Logger();                                        // Create an
 //TODO: fix the issue when exiting scenes and editing the last sent message that the HTML markup doesn't stay
 //TODO: Allow for parts of the bot to be enabled/disabled by modules (module.enable/disable) for easy debugging and isolation
 
-// Connect to the DB once throughout the while bot code
+// Init the remote DB for queries
 db.connect();
 
 // Uncomment this if the DB has been destroyed
@@ -48,14 +48,14 @@ bot.telegram.getMe().then((botInfo) => {
     bot.options.username = botInfo.username;
 });
 
-// Put middleware stuff here
+// Put middleware globally fo the bot here
 bot.use(
     session(),
     // get the 'index.js' in the /bot/commands folder which contains listeners and handlers for commands
     require('./bot/commands'),
     // do the same for non '/command' listeners
     require('./bot/listeners'),
-    // Allow for attached .then() to a ctx.reply()
+    // Allow for atached .then() to a ctx.reply()
     (ctx, next) => {
         const reply = ctx.reply;
         ctx.reply = (...args) => {

@@ -1,4 +1,4 @@
-'use strict';
+ 'use strict';
 const mysql = require('mysql');
 const CONFIG = require('../config/config.js');
 const Logger = require('../lib/loggerClass.js');
