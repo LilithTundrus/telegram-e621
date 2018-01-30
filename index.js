@@ -5,6 +5,7 @@
  * Bot
  */
 const bot = require('./bot/bot-main');
+const rateLimit = require('telegraf-ratelimit')
 const session = require('telegraf/session');
 const errHandler = require('./utils/botErrHandler');
 const config = require('./config/config');
@@ -48,6 +49,16 @@ bot.telegram.getMe().then((botInfo) => {
     bot.options.username = botInfo.username;
 });
 
+// Set limit to 1 message per 3 seconds
+const limitConfig = {
+    window: 5000,
+    limit: 1,
+    onLimitExceeded: ((ctx, next) => {
+        logger.warn(`${ctx.message.from.username} exceeded the rate limit.`);
+        ctx.reply('Rate limit exceeded. This instance will be reported.');
+    })
+}
+
 // Put middleware globally fo the bot here
 bot.use(
     session(),
@@ -55,6 +66,7 @@ bot.use(
     require('./bot/commands'),
     // do the same for non '/command' listeners
     require('./bot/listeners'),
+    rateLimit(limitConfig),
     // Allow for atached .then() to a ctx.reply()
     (ctx, next) => {
         const reply = ctx.reply;
