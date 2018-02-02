@@ -13,8 +13,7 @@ const pagingKeyboard = telegramKeyboards.pagingKeyboard;
 const popularKeyboard = telegramKeyboards.popularKeyboard;
 const { enter, leave } = Stage;
 const popularScene = new Scene('popular');
-
-let popularInstances = [];
+let popularSceneUserInstances = [];
 
 popularScene.enter((ctx) => {
     popularEnter(ctx);
@@ -85,7 +84,7 @@ function popularEnter(teleCtx) {
         popularSceneArray: [],
         currentIndex: 0,
     })
-    popularInstances.push({
+    popularSceneUserInstances.push({
         id: teleCtx.chat.id,
         state: state
     })
@@ -109,7 +108,7 @@ function popularLeave(teleCtx) {
 function getState(teleID) {
     // handle the state of a user's interaction with the search scene
     let entryToReturn;
-    popularInstances.forEach((entry, index) => {
+    popularSceneUserInstances.forEach((entry, index) => {
         if (entry.id == teleID) {
             return entryToReturn = entry;
         }
@@ -119,13 +118,13 @@ function getState(teleID) {
 }
 
 function removeStateForUser(teleID) {
-    for (var i = popularInstances.length - 1; i >= 0; --i) {
-        if (popularInstances[i].id == teleID) {
-            popularInstances.splice(i, 1);
+    for (var i = popularSceneUserInstances.length - 1; i >= 0; --i) {
+        if (popularSceneUserInstances[i].id == teleID) {
+            popularSceneUserInstances.splice(i, 1);
         }
     }
-    logger.debug(`Removing user with ID: ${teleID} from popularInstances`);
-    logger.debug(popularInstances.length);
+    logger.debug(`Removing user with ID: ${teleID} from popularSceneUserInstances`);
+    logger.debug(popularSceneUserInstances.length);
 }
 
 module.exports = popularScene;
