@@ -13,6 +13,12 @@ const pagingKeyboard = telegramKeyboards.pagingKeyboard;
 const { enter, leave } = Stage;
 const searchScene = new Scene('search');
 
+/* 
+we're going to use a new class and on the nex/previous action act upon the user's data
+to sort of 'multithread' this
+*/
+
+
 // A really hacky way to store the state of this function per user
 let searchInstancesPM = [];
 let searchInstancesGroup = [];
@@ -34,10 +40,11 @@ searchScene.hears('😎 Popular', (ctx) => {
         return ctx.scene.enter('popular');
     });
 });
-searchScene.on('text', (ctx) => {
+searchScene.on('text', async (ctx) => {
     let limitSetting = config.e621DefualtLinkLimit;
     let userState = getSearchStateForUser(ctx.chat.id, ctx.message.from.id);
     // only allow for ONE set of tags to be used per search command activation
+    // try to stop listening for text, it does hitch the main thread pretty badly
     if (userState.rateLimit < 1) {
         userState.rateLimit++;
         ctx.telegram.editMessageText(ctx.chat.id, userState.initialMessageID, null, 'Searching...');
@@ -60,7 +67,7 @@ searchScene.on('text', (ctx) => {
                         } else {
                             ctx.telegram.editMessageText(ctx.chat.id, userState.initialMessageID, null, 'Done!');
                             userState.searchSceneArray = response;
-                            let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>\n❤️: ${response[0].fav_count}\nType: ${response[0].file_ext}\nDescription: ${response[0].description}`;
+                            let message = `Result 1 of ${response.length}\n<a href="${response[0].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(response[0].id)}">E621 Post</a>\n❤️: ${response[0].fav_count}\nType: ${response[0].file_ext}`;
                             return ctx.replyWithHTML(message, pagingKeyboard)
                                 .then((messageResult) => {
                                     userState.lastSentMessageID = messageResult.message_id;
@@ -72,21 +79,24 @@ searchScene.on('text', (ctx) => {
                         return ctx.reply(`Looks like I ran into a problem. If the issue persists please contact ${config.devContactName}`);
                     })
             })
+    } else {
+        logger.debug('Ignored text')
     }
 });
 // This is listening for the callback buttons
 searchScene.action(/.+/, async (ctx) => {
-    let userState = await getSearchStateForUser(ctx.chat.id, ctx.callbackQuery.from.id);
+    let userState = getSearchStateForUser(ctx.chat.id, ctx.callbackQuery.from.id);
     if (!userState) {
-        return errHandler(ctx, `userState was not found for ${ctx.chat.id}, ${ctx.callbackQuery.from.id} at searchcene.action`)
+        return errHandler(ctx, `userState was not found for ${ctx.chat.id}, ${ctx.callbackQuery.from.id} at searchcene.action`);
     }
     try {
+        logger.debug(userState.test())
         if (ctx.match[0] == 'Next') {
             if (userState.currentIndex !== userState.searchSceneArray.length - 1) {
                 userState.currentIndex++;
                 let currentUserStateIndex = userState.currentIndex;
                 let currentUserStateArray = userState.searchSceneArray;
-                let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}\nDescription: ${currentUserStateArray[currentUserStateIndex].description}`;
+                let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
                 await ctx.telegram.editMessageText(ctx.chat.id, userState.lastSentMessageID, null, message, pagingKeyboard)
             } else {
                 return ctx.reply(`That's the last image. if you want to adjust your limit use the /limit command or the settings keyboard command`);
@@ -96,7 +106,7 @@ searchScene.action(/.+/, async (ctx) => {
                 userState.currentIndex--;
                 let currentUserStateIndex = userState.currentIndex;
                 let currentUserStateArray = userState.searchSceneArray;
-                let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}\nDescription: ${currentUserStateArray[currentUserStateIndex].description}`;
+                let message = `Post ${userState.currentIndex + 1} of ${currentUserStateArray.length}: \n<a href="${currentUserStateArray[currentUserStateIndex].file_url}">Direct Link</a>/<a href="${wrapper.generateE621PostUrl(currentUserStateArray[currentUserStateIndex].id)}">E621 Post</a>\n❤️: ${currentUserStateArray[currentUserStateIndex].fav_count}\nType: ${currentUserStateArray[currentUserStateIndex].file_ext}`;
                 await ctx.telegram.editMessageText(ctx.chat.id, userState.lastSentMessageID, null, message, pagingKeyboard);
             }
         } else if (ctx.match[0] == 'Exit') {
@@ -220,9 +230,9 @@ function removeStateForUser(groupID, userID, type) {
     })
 }
 
-function errHandler(ctx, err) {
-    logger.error(err);
-    return ctx.reply(`Sorry, looks like something went wrong.`);
+function errHandler(teleCtx, err) {                                          // basic error handler to call on a non-nested .catch() exception
+    logger.error(`------- Error occured:\n${err && err.stack ? err.message + '\n' + err.stack : err.toString()}`);
+    return teleCtx.reply(`Sorry, looks like something went wrong.`);
 }
 
 // Export the scene as the user-facing code. All internal functions cannot be used directly

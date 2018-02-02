@@ -37,6 +37,8 @@ const logger = new Logger();                                        // Create an
 //TODO: get the bot to 'type' while loading requests
 //TODO: fix the issue when exiting scenes and editing the last sent message that the HTML markup doesn't stay
 //TODO: Allow for parts of the bot to be enabled/disabled by modules (module.enable/disable) for easy debugging and isolation
+//TODO: Make every single aciton the bot can take main thread safe
+//TODO: Set up an inactivity function for the search/popular commands
 
 // Init the remote DB for queries
 db.connect();
