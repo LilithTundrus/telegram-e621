@@ -80,7 +80,7 @@ searchScene.on('text', async (ctx) => {
                     })
             })
     } else {
-        logger.debug('Ignored text')
+        logger.debug('Ignored text');
     }
 });
 // This is listening for the callback buttons
@@ -169,8 +169,8 @@ function searchEnter(teleCtx) {
                 return teleCtx.reply(`Please only PM this bot or add it to a group. Chat type '${teleCtx.chat.type}' is not supported.`);
             }
         })
-        .then(() => {
-
+        .catch((err) => {
+            return errHandler(teleCtx, err);
         })
 }
 
@@ -232,7 +232,7 @@ function removeStateForUser(groupID, userID, type) {
 
 function errHandler(teleCtx, err) {                                          // basic error handler to call on a non-nested .catch() exception
     logger.error(`------- Error occured:\n${err && err.stack ? err.message + '\n' + err.stack : err.toString()}`);
-    return teleCtx.reply(`Sorry, looks like something went wrong.`);
+    return teleCtx.reply(`Sorry, looks like something went wrong. If the issue persits, contact ${config.devContactName}`);
 }
 
 // Export the scene as the user-facing code. All internal functions cannot be used directly
