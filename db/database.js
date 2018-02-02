@@ -19,6 +19,7 @@ function connect() {
         logger.info('Connected to DB.');
     });
 }
+
 function disconnect() {
     logger.info('DB DISCONNECT');
     return con.destroy();
@@ -92,8 +93,6 @@ function removeTelegramUser(teleid) {
         });
     });
 }
-
-
 
 module.exports.connect = connect;
 module.exports.createUserTable = createUserTable;
